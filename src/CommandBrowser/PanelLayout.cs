@@ -108,7 +108,7 @@ internal static class PanelLayout
                 throw new InvalidOperationException("The selected sidebar or parent relationships differ from the reviewed layout.");
             EnsureBoundsHook();
             Current = new LayoutState(main, sidebar, panel, map,
-                () => sidebar.Visible && sidebar.Child.Visibility == System.Windows.Visibility.Visible,
+                () => sidebar.Visible && sidebar.Child.IsVisible,
                 () => ReferenceEquals(selectedField.GetValue(main), sidebar) && ReferenceEquals(rootField.GetValue(main), root)
                     && ReferenceEquals(sidebar.Child, root) && ReferenceEquals(mapField.GetValue(main), map)
                     && ReferenceEquals(panelField.GetValue(main), panel), sidebar.Child);
