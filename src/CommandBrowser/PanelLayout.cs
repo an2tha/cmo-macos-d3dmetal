@@ -1,7 +1,5 @@
 using System;
-using System.IO;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
@@ -12,7 +10,6 @@ using Timer = System.Windows.Forms.Timer;
 // Game-owned controls, Dock/Anchor settings, and WPF content are not replaced.
 internal static class PanelLayout
 {
-    private const string GameHash = "53fc37bb0b634adbe46f4ddf3a87c99847d273cc6f1d980ba9796da6389d25fc";
     private const string Owner = "cmo.selected-sidebar.layout";
     private static readonly BindingFlags Fields = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
     private static Action<string> Logger;
@@ -21,22 +18,15 @@ internal static class PanelLayout
     private static Form Pending;
     private static int Attempts;
     private static bool BoundsHooked;
-    private static LayoutState Current;
+    private static LayoutState Current, Restoring;
 
     internal static void Install(string gameDirectory, Action<string> logger)
     {
         Logger = logger;
         try
         {
-            string hash;
-            using (SHA256 sha = SHA256.Create())
-            using (Stream stream = File.OpenRead(Path.Combine(gameDirectory, "Command.exe")))
-                hash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
-            if (hash != GameHash)
-            {
-                Log("Sidebar layout skipped: unreviewed game hash " + hash);
+            if (!ReviewedGame.IsKnown(gameDirectory, Log))
                 return;
-            }
             Patcher = new Harmony(Owner);
             Patcher.Patch(typeof(Form).GetMethod("OnShown", BindingFlags.Instance | BindingFlags.NonPublic),
                 postfix: new HarmonyMethod(typeof(PanelLayout).GetMethod("AfterShown", BindingFlags.Static | BindingFlags.NonPublic)));
@@ -60,7 +50,7 @@ internal static class PanelLayout
         try
         {
             if (__instance.GetType().FullName != "Command.MainForm" || !__instance.Visible || !__instance.IsHandleCreated
-                || Current != null || Discovery != null)
+                || Current != null || Restoring != null || Discovery != null)
                 return;
             Pending = __instance;
             Attempts = 0;
@@ -106,12 +96,16 @@ internal static class PanelLayout
             if (!ReferenceEquals(sidebar.Child, root) || root.GetType().FullName != "Command.RightColumnWPF"
                 || !ReferenceEquals(sidebar.Parent, main) || !ReferenceEquals(panel.Parent, main) || !ReferenceEquals(map.Parent, panel))
                 throw new InvalidOperationException("The selected sidebar or parent relationships differ from the reviewed layout.");
+            RendererViewport viewport = RendererViewport.TryCreate(map,
+                () => !main.IsDisposed && ReferenceEquals(mapField.GetValue(main), map) && ReferenceEquals(panelField.GetValue(main), panel));
+            if (viewport == null)
+                return;
             EnsureBoundsHook();
             Current = new LayoutState(main, sidebar, panel, map,
                 () => sidebar.Visible && sidebar.Child.IsVisible,
                 () => ReferenceEquals(selectedField.GetValue(main), sidebar) && ReferenceEquals(rootField.GetValue(main), root)
                     && ReferenceEquals(sidebar.Child, root) && ReferenceEquals(mapField.GetValue(main), map)
-                    && ReferenceEquals(panelField.GetValue(main), panel), sidebar.Child);
+                    && ReferenceEquals(panelField.GetValue(main), panel), viewport, sidebar.Child);
             StopDiscovery();
             Current.Subscribe();
             Current.Synchronize();
@@ -156,6 +150,10 @@ internal static class PanelLayout
         private readonly Control PanelParent, MapParent;
         private readonly Func<bool> Visible, IdentityValid;
         private readonly System.Windows.UIElement SelectedRoot;
+        private readonly IMapViewport Viewport;
+        private Timer Maintenance;
+        private int WaitingTicks, RestoreFailures;
+        private bool Resizing, RollbackPending, RestorePending;
         private readonly int PanelRightGap;
         internal readonly int MapRightGap;
         internal bool Clamping;
@@ -165,7 +163,7 @@ internal static class PanelLayout
         private int LastWidth = -1;
 
         internal LayoutState(Form main, Control sidebar, Control panel, Control map, Func<bool> visible, Func<bool> identityValid,
-            System.Windows.UIElement selectedRoot = null)
+            IMapViewport viewport, System.Windows.UIElement selectedRoot = null)
         {
             Main = main;
             Sidebar = sidebar;
@@ -176,6 +174,7 @@ internal static class PanelLayout
             Visible = visible;
             IdentityValid = identityValid;
             SelectedRoot = selectedRoot;
+            Viewport = viewport ?? throw new ArgumentNullException(nameof(viewport));
             PanelRightGap = PanelParent.ClientSize.Width - panel.Right;
             MapRightGap = MapParent.ClientSize.Width - map.Right;
         }
@@ -183,6 +182,7 @@ internal static class PanelLayout
         internal void Subscribe()
         {
             Main.Resize += Changed;
+            Main.HandleCreated += Changed;
             Main.Layout += LaidOut;
             Main.Disposed += MainDisposed;
             Sidebar.LocationChanged += Changed;
@@ -224,19 +224,23 @@ internal static class PanelLayout
                 Main.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
                 {
                     Interlocked.Exchange(ref Queued, 0);
-                    if (!Disposed)
+                    if (RollbackPending)
+                    {
+                        RollbackPending = false;
+                        Rollback();
+                    }
+                    else if (!Disposed)
                         Synchronize();
                 });
             }
             catch (Exception error)
             {
                 Interlocked.Exchange(ref Queued, 0);
-                Clamping = false;
-                if (ReferenceEquals(Current, this))
-                    Current = null;
-                Log("Sidebar UI is unavailable; enforcement disabled: " + error.Message);
+                Log("Sidebar UI scheduling failed; restoration requested: " + error.Message);
                 if (!Main.InvokeRequired)
                     Rollback();
+                else
+                    RollbackPending = true;
             }
         }
 
@@ -251,6 +255,8 @@ internal static class PanelLayout
                     || !ReferenceEquals(Panel.Parent, PanelParent) || !ReferenceEquals(Map.Parent, MapParent)
                     || !ReferenceEquals(Sidebar.Parent, PanelParent))
                     throw new InvalidOperationException("Sidebar action targets were replaced or reparented.");
+                if (!Viewport.IsCurrent)
+                    throw new InvalidOperationException("The renderer or picking camera was replaced.");
                 int fullWidth = Math.Max(1, PanelParent.ClientSize.Width - Panel.Left - PanelRightGap);
                 int fullRight = Panel.Left + fullWidth;
                 int width = fullWidth;
@@ -261,6 +267,12 @@ internal static class PanelLayout
                     if (available >= 64)
                         width = Math.Min(fullWidth, available);
                 }
+                bool needsBounds = Panel.Width != width || Map.Width != Math.Max(1, width - Panel.Padding.Horizontal - Map.Left - MapRightGap);
+                if ((needsBounds || !Viewport.RendererSizeMatches) && !Viewport.CanResize)
+                {
+                    WaitForViewport();
+                    return;
+                }
                 Clamping = width < fullWidth;
                 RightEdge = Panel.Left + width;
                 if (Panel.Width != width)
@@ -268,6 +280,12 @@ internal static class PanelLayout
                 int mapWidth = Math.Max(1, Panel.ClientSize.Width - Map.Left - MapRightGap);
                 if (Map.Width != mapWidth)
                     Map.Width = mapWidth;
+                if (!Viewport.RendererSizeMatches)
+                    ResizeViewport();
+                if (!Viewport.Matches)
+                    WaitForViewport();
+                else
+                    StopMaintenance();
                 if (width != LastWidth)
                 {
                     LastWidth = width;
@@ -279,7 +297,146 @@ internal static class PanelLayout
                 Log("Sidebar layout rolled back after failure: " + error);
                 Rollback();
             }
-            finally { Updating = false; }
+            finally
+            {
+                Updating = false;
+                if (RollbackPending)
+                {
+                    RollbackPending = false;
+                    Rollback();
+                }
+            }
+        }
+
+        private void ResizeViewport()
+        {
+            if (Resizing)
+                throw new InvalidOperationException("Nested renderer resize withheld.");
+            Resizing = true;
+            try
+            {
+                Viewport.Resize();
+            }
+            finally { Resizing = false; }
+        }
+
+        private void WaitForViewport()
+        {
+            if (Maintenance != null)
+                return;
+            WaitingTicks = 0;
+            Maintenance = new Timer { Interval = 50 };
+            Maintenance.Tick += Maintain;
+            Maintenance.Start();
+        }
+
+        private void StopMaintenance()
+        {
+            if (Maintenance != null)
+            {
+                Maintenance.Stop();
+                Maintenance.Dispose();
+                Maintenance = null;
+            }
+            WaitingTicks = 0;
+        }
+
+        private void Maintain(object sender, EventArgs args)
+        {
+            try
+            {
+                if (Resizing)
+                    return;
+                if (Main.IsDisposed || Map.IsDisposed)
+                {
+                    FinishRestoration();
+                    return;
+                }
+                if (RestorePending)
+                {
+                    RestoreViewport();
+                    return;
+                }
+                if (++WaitingTicks > 40)
+                {
+                    Log("Viewport did not settle; rolling back the sidebar layout.");
+                    Rollback();
+                }
+                else
+                    Synchronize();
+            }
+            catch (Exception error) { Log("Viewport maintenance failed: " + error); Rollback(); }
+        }
+
+        internal void CheckMaintenance()
+        {
+            Maintain(this, EventArgs.Empty);
+        }
+
+        private void FinishRestoration()
+        {
+            RestorePending = false;
+            if (Disposed)
+                RollbackPending = false;
+            if (ReferenceEquals(Restoring, this))
+                Restoring = null;
+            StopMaintenance();
+        }
+
+        private void RestoreViewport()
+        {
+            try
+            {
+                RestoreViewportCore();
+            }
+            catch (Exception error)
+            {
+                RestoreFailures++;
+                Try(WaitForViewport, "restoration scheduling");
+                if (Maintenance != null)
+                    Maintenance.Interval = RestoreFailures >= 3 ? 5000 : 500;
+                if (RestoreFailures <= 3 || (RestoreFailures & (RestoreFailures - 1)) == 0)
+                    Log("Viewport restoration inspection remains pending: " + error.Message);
+            }
+        }
+
+        private void RestoreViewportCore()
+        {
+            if (Resizing)
+            {
+                RollbackPending = true;
+                return;
+            }
+            if (Main.IsDisposed || Map.IsDisposed || !ReferenceEquals(Map.Parent, MapParent) || !Viewport.IsCurrent)
+            {
+                Log("Old viewport restoration stopped: original live targets are unavailable.");
+                FinishRestoration();
+                return;
+            }
+            if (Viewport.Matches)
+            {
+                FinishRestoration();
+                return;
+            }
+            WaitForViewport();
+            if (Maintenance != null && ++WaitingTicks > 40 && RestoreFailures < 3)
+                Maintenance.Interval = 500;
+            if (Viewport.RendererSizeMatches || !Viewport.CanResize)
+                return;
+            try
+            {
+                ResizeViewport();
+                if (Viewport.Matches)
+                    FinishRestoration();
+            }
+            catch (Exception error)
+            {
+                RestoreFailures++;
+                if (Maintenance != null)
+                    Maintenance.Interval = RestoreFailures >= 3 ? 5000 : 500;
+                if (RestoreFailures <= 3 || (RestoreFailures & (RestoreFailures - 1)) == 0)
+                    Log("Viewport restoration remains pending; retrying when idle (attempt " + RestoreFailures + "): " + error.Message);
+            }
         }
 
         private void Try(Action action, string name)
@@ -293,13 +450,24 @@ internal static class PanelLayout
 
         internal void Rollback()
         {
-            if (Disposed)
+            if (Resizing)
+            {
+                RollbackPending = true;
                 return;
+            }
+            if (Disposed)
+            {
+                if (RestorePending)
+                    RestoreViewport();
+                return;
+            }
             Disposed = true;
             Clamping = false;
             if (ReferenceEquals(Current, this))
                 Current = null;
+            StopMaintenance();
             Try(() => Main.Resize -= Changed, "main resize subscription");
+            Try(() => Main.HandleCreated -= Changed, "main handle subscription");
             Try(() => Main.Layout -= LaidOut, "main layout subscription");
             Try(() => Main.Disposed -= MainDisposed, "main disposal subscription");
             Try(() => Sidebar.LocationChanged -= Changed, "sidebar location subscription");
@@ -323,6 +491,87 @@ internal static class PanelLayout
                     Map.Width = Math.Max(1, MapParent.ClientSize.Width - Map.Left - MapRightGap);
             }, "original map width");
             Try(() => { if (!Main.IsDisposed) Main.PerformLayout(); }, "original layout");
+            RestorePending = true;
+            Restoring = this;
+            RestoreViewport();
+        }
+    }
+
+    private sealed class FixtureViewport : IMapViewport
+    {
+        private readonly Control Map;
+        private System.Drawing.Size RenderSize, CameraSize;
+        internal int Calls, Depth, MaximumDepth;
+        internal bool Busy, DelayCamera, ThrowNext, FailAfterChange;
+        internal bool CurrentIdentity = true;
+        internal int FailuresRemaining;
+        internal Action DuringResize;
+        internal FixtureViewport(Control map)
+        {
+            Map = map;
+            RenderSize = CameraSize = map.ClientSize;
+        }
+        public bool IsCurrent
+        {
+            get
+            {
+                return CurrentIdentity;
+            }
+        }
+        public bool CanResize
+        {
+            get
+            {
+                return !Busy;
+            }
+        }
+        public bool RendererSizeMatches
+        {
+            get
+            {
+                return RenderSize == Map.ClientSize;
+            }
+        }
+        public bool Matches
+        {
+            get
+            {
+                return RendererSizeMatches && CameraSize == Map.ClientSize;
+            }
+        }
+        internal void CompleteFrame()
+        {
+            CameraSize = RenderSize;
+        }
+        public void Resize()
+        {
+            Calls++;
+            Depth++;
+            MaximumDepth = Math.Max(MaximumDepth, Depth);
+            try
+            {
+                if (ThrowNext)
+                {
+                    ThrowNext = false;
+                    throw new InvalidOperationException("Injected viewport failure.");
+                }
+                if (FailuresRemaining > 0 && !FailAfterChange)
+                {
+                    FailuresRemaining--;
+                    throw new InvalidOperationException("Transient restore failure.");
+                }
+                RenderSize = Map.ClientSize;
+                if (!DelayCamera)
+                    CameraSize = RenderSize;
+                if (FailAfterChange)
+                {
+                    FailAfterChange = false;
+                    throw new InvalidOperationException("Partial resize failure.");
+                }
+                if (DuringResize != null)
+                    DuringResize();
+            }
+            finally { Depth--; }
         }
     }
 
@@ -344,13 +593,14 @@ internal static class PanelLayout
             panel.Controls.Add(map);
             map.Dock = DockStyle.Fill;
             bool visible = true, valid = true;
-            LayoutState state = new LayoutState(form, sidebar, panel, map, () => visible, () => valid);
+            FixtureViewport viewport = new FixtureViewport(map);
+            LayoutState state = new LayoutState(form, sidebar, panel, map, () => visible, () => valid, viewport);
             Current = state;
             state.Subscribe();
             try
             {
                 state.Synchronize();
-                Assert(panel.Width == 1452 && map.Width == 1452, "initial reservation");
+                Assert(panel.Width == 1452 && map.Width == 1452 && viewport.Matches && viewport.Calls == 1, "initial reservation and viewport synchronization");
                 panel.Width = 1728;
                 map.Width = 1728;
                 Assert(panel.Width == 1452 && map.Width == 1452, "game layout overwrite clamp");
@@ -367,13 +617,67 @@ internal static class PanelLayout
                 Assert(panel.Width == 1400 && map.Width == 1400, "offscreen-sidebar restoration");
                 sidebar.Left = 1124;
                 state.Synchronize();
+                int calls = viewport.Calls;
+                viewport.DelayCamera = true;
+                visible = false;
+                state.Synchronize();
+                Assert(viewport.RendererSizeMatches && !viewport.Matches, "camera may settle on next frame");
+                state.Synchronize();
+                Assert(viewport.Calls == calls + 1, "camera lag does not repeat GPU resize");
+                viewport.CompleteFrame();
+                state.Synchronize();
+                viewport.DelayCamera = false;
+                viewport.Busy = true;
+                visible = true;
+                state.Synchronize();
+                Assert(map.Width == 1400 && viewport.Matches, "busy renderer postpones bounds changes");
+                viewport.Busy = false;
+                state.Synchronize();
+                Assert(map.Width == 1124 && viewport.Matches, "idle retry synchronizes bounds and viewport");
                 valid = false;
                 state.Synchronize();
-                Assert(Current == null && panel.Width == 1400 && map.Width == 1400, "identity-change rollback");
+                Assert(Current == null && panel.Width == 1400 && map.Width == 1400 && viewport.Matches, "identity-change rollback restores viewport");
                 panel.Width = 1300;
                 Assert(panel.Width == 1300, "rollback disables enforcement");
+                panel.Width = 1400;
+                valid = true;
+                viewport = new FixtureViewport(map) { ThrowNext = true };
+                state = new LayoutState(form, sidebar, panel, map, () => visible, () => valid, viewport);
+                Current = state;
+                state.Subscribe();
+                state.Synchronize();
+                Assert(Current == null && map.Width == 1400 && viewport.Matches, "resize failure restores original geometry");
+                viewport = new FixtureViewport(map);
+                state = new LayoutState(form, sidebar, panel, map, () => visible, () => valid, viewport);
+                viewport.DuringResize = () => state.Rollback();
+                Current = state;
+                state.Subscribe();
+                state.Synchronize();
+                Assert(Current == null && map.Width == 1400 && viewport.Matches && viewport.MaximumDepth == 1,
+                    "reentrant rollback waits for resize return");
+                viewport = new FixtureViewport(map) { FailAfterChange = true, FailuresRemaining = 4 };
+                state = new LayoutState(form, sidebar, panel, map, () => visible, () => valid, viewport);
+                Current = state;
+                state.Subscribe();
+                state.Synchronize();
+                Assert(Current == null && !viewport.Matches, "partial failure retains pending restoration");
+                for (int i = 0; i < 5; i++)
+                    state.CheckMaintenance();
+                Assert(viewport.Matches && viewport.Calls >= 6 && Restoring == null,
+                    "restoration recovers after more than three transient failures");
+                viewport = new FixtureViewport(map);
+                state = new LayoutState(form, sidebar, panel, map, () => visible, () => valid, viewport);
+                Current = state;
+                state.Subscribe();
+                state.Synchronize();
+                calls = viewport.Calls;
+                viewport.CurrentIdentity = false;
+                valid = false;
+                state.Synchronize();
+                Assert(Current == null && map.Width == 1400 && viewport.Calls == calls,
+                    "replaced map is never passed to the old renderer");
             }
-            finally { state.Rollback(); Current = null; }
+            finally { state.Rollback(); Current = null; Restoring = null; }
         }
         Patcher.Unpatch(typeof(Control).GetMethod("SetBoundsCore", BindingFlags.Instance | BindingFlags.NonPublic), HarmonyPatchType.Prefix, Owner);
         BoundsHooked = false;
