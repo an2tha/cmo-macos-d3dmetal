@@ -50,7 +50,7 @@ A `Control.SetBoundsCore` prefix enforces widths only on the two exact map objec
 
 Rollback disables enforcement first, restores original-object bounds, then restores the viewport through the same routine. It waits until an in-progress resize returns and retains pending recovery after failures. Transient failures use slower retries; replaced targets are never resized. Once geometry is stable, maintenance timers stop. The inactive framework prefix remains rooted until process exit.
 
-`CMO_PANEL_LAYOUT=1` opts into this automatic implementation. The controlled resize and subsequent automatic integration passed user-confirmed selection, resize/hide/show, scrolling and map-input checks. Static metadata alone cannot establish the protected resize routine's behavior.
+The launch script supplies `CMO_PANEL_LAYOUT=1` by default on every run. Set it to `0` to disable sidebar synchronization. Direct launches of `CommandBrowser.exe` still require the variable explicitly. The controlled resize and subsequent automatic integration passed user-confirmed selection, resize/hide/show, scrolling and map-input checks. Static metadata alone cannot establish the protected resize routine's behavior.
 
 ## Window-activation guard
 

@@ -4,7 +4,7 @@ An experimental D3DMetal compatibility launcher for **Command: Modern Operations
 
 CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by Wine's Direct2D renderer. It runs the original `Command.exe` in the same process, with process-local graphics adapters installed first. The game executable and its libraries are not patched on disk.
 
-The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. Optional UI compatibility code can synchronize the selected-unit sidebar with the map viewport and contain a captured window-activation wait. These UI changes are experimental and disabled by default.
+The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. The launch script enables selected-unit sidebar and map viewport synchronization by default. A separate experimental option can contain a captured window-activation wait.
 
 **Status:** the original prototype renders a playable map, with remaining lag. A controlled panel test restored the complete sidebar and correct map clicks by invoking the game's normal renderer resize. A later freeze was captured in a window-activation call. The combined automatic UI implementation then passed a user-confirmed check of selection, resizing, sidebar visibility, app switching, dialogs and database details without another freeze. Longer stability remains under investigation. This repository's standalone renderer rewrite also retains its separate graphics regression-testing requirement.
 
@@ -71,7 +71,7 @@ The normal CrossOver **Command** icon starts the original executable without the
 
 ## Experimental sidebar and focus tests
 
-These options are restricted to the reviewed Command build and are off by default. The combined bootstrap passed a controlled in-game check of automatic startup, selection, panel scrolling, pan/zoom, context menus, resizing, sidebar hide/show, app switching, unit/database dialogs and keyboard focus. Longer sessions and other environments remain unvalidated.
+These options are restricted to the reviewed Command build. The launch script enables the sidebar resize fix by default; the separate focus guard remains opt-in. The combined bootstrap passed a controlled in-game check of automatic startup, selection, panel scrolling, pan/zoom, context menus, resizing, sidebar hide/show, app switching, unit/database dialogs and keyboard focus. Longer sessions and other environments remain unvalidated.
 
 After saving and closing the game, start a separate test session with:
 
@@ -79,7 +79,7 @@ After saving and closing the game, start a separate test session with:
 CMO_PANEL_LAYOUT=1 CMO_FOCUS_COMPAT=1 zsh scripts/Play-D3DMetal.command
 ```
 
-For an extracted package, use `Play-D3DMetal.command` without the `scripts/` prefix. `CMO_PANEL_LAYOUT=1` reserves sidebar space and synchronizes the renderer and picking camera. `CMO_FOCUS_COMPAT=1` guards the exact message-handler activation path captured during one freeze. Unknown game hashes retain normal behavior. Omit these variables or set them to `0` on the next launch to disable the experiments.
+For an extracted package, use `Play-D3DMetal.command` without the `scripts/` prefix. `CMO_PANEL_LAYOUT=1` reserves sidebar space and synchronizes the renderer and picking camera. The launch script supplies this setting automatically on every run. `CMO_FOCUS_COMPAT=1` guards the exact message-handler activation path captured during one freeze. Unknown game hashes retain normal behavior. Set either option to `0` on the next launch to disable it. Starting `CommandBrowser.exe` directly still requires these environment variables; starting `CommandMetal.exe` directly bypasses the sidebar and browser fixes.
 
 ## Remove or roll back
 

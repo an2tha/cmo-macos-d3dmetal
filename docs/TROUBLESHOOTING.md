@@ -8,7 +8,7 @@ Browser logs record guard installation, SDK identity mismatches, and skipped cal
 
 ## Unit status panel and map click offset
 
-The controlled fix requires narrowing the native map and invoking the game's normal renderer resize. Changing only map bounds leaves the drawing and picking dimensions stale. The opt-in `CMO_PANEL_LAYOUT=1` path coordinates these steps and checks the camera after the next frame. The automatic integration passed a controlled in-game panel, input and transition check.
+The controlled fix requires narrowing the native map and invoking the game's normal renderer resize. Changing only map bounds leaves the drawing and picking dimensions stale. The launch script enables `CMO_PANEL_LAYOUT=1` automatically to coordinate these steps and check the camera after the next frame. Starting `CommandMetal.exe` directly bypasses this fix. The automatic integration passed a controlled in-game panel, input and transition check.
 
 If a test leaves clicks offset, save and close the game, then relaunch with `CMO_PANEL_LAYOUT=0`. Unknown game hashes and unsupported layouts are logged and left unchanged. Do not combine the package with older private sidebar probes.
 
@@ -41,7 +41,7 @@ Additional diagnostics are opt-in:
 | `CMO_D2D_PROFILE=1` | Selected Direct2D call counts and timing; changes measurement overhead |
 | `CMO_D2D_BATCHING=0` | Disable drawing batching to compare the ordinary state-emulation path |
 | `CMO_LOG_DIR` | Directory for CommandMetal logs |
-| `CMO_PANEL_LAYOUT=1` | Opt into paired sidebar bounds and renderer/camera synchronization |
+| `CMO_PANEL_LAYOUT=0` | Disable the sidebar and renderer/camera synchronization enabled by the launch script |
 | `CMO_FOCUS_COMPAT=1` | Opt into the captured MainForm activation caller guard |
 | `CMO_WEBVIEW_COMPAT=0` | Disable the optional Settings8 compatibility guard in CommandBrowser |
 
