@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandMetal", "src\Command
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraphicsProbe", "src\GraphicsProbe\GraphicsProbe.csproj", "{0F5AC8DA-20C7-430E-84B7-0DE45D6BA591}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandBrowser", "src\CommandBrowser\CommandBrowser.csproj", "{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{0F5AC8DA-20C7-430E-84B7-0DE45D6BA591}.Release|x64.Build.0 = Release|Any CPU
 		{0F5AC8DA-20C7-430E-84B7-0DE45D6BA591}.Release|x86.ActiveCfg = Release|Any CPU
 		{0F5AC8DA-20C7-430E-84B7-0DE45D6BA591}.Release|x86.Build.0 = Release|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Debug|x64.Build.0 = Debug|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Debug|x86.Build.0 = Debug|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Release|x64.ActiveCfg = Release|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Release|x64.Build.0 = Release|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Release|x86.ActiveCfg = Release|Any CPU
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,5 +64,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{885F0F77-6E42-434A-AFF3-460114D84BB7} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{0F5AC8DA-20C7-430E-84B7-0DE45D6BA591} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{AA0CD2B9-2EDF-4ADF-8CA2-EF90D92AFAB9} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

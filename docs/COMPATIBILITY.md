@@ -14,8 +14,15 @@ The original state adapter passed isolated pixel/readback and state-restoration 
 | Whole-window freezes or unexpected exits | Under investigation; first user report with MSync off had no crashes yet | Repeated representative sessions without the reported freeze, with comparable diagnostics |
 | Slow map operations, especially zoomed out | Improved by drawing batches in the prototype, still present | Smoother pan/zoom without incorrect graphics or state restoration |
 | Right-side Group/Unit Status panel clipped beneath the map | Unresolved, reported on both Wine and D3DMetal | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
+| Database Viewer list populates but entry details stay blank | Resolved in the tested prototype with the Settings8 compatibility bootstrap | Details render after selecting an entry, with the same map renderer retained |
 
 The sidebar investigation remains separate from this package. A native map-region experiment failed the user's visual test and was undone. The actual selected-sidebar host was not conclusively identified. No experimental sidebar patch is shipped here.
+
+## Database Viewer finding
+
+An isolated probe using the installed SDK and Runtime 109 reproduced the missing Settings8 interface and escaping `NotImplementedException`. Local HTML navigation and DOM layout succeeded, and the user confirmed the probe's heading and text were visible. With the targeted guard, the settings call completed and HTML remained functional. The user then confirmed the real database details rendered when the bootstrap invoked the unchanged installed renderer. Original game, renderer, configuration, and Microsoft SDK files were verified unchanged.
+
+This guard covers the validated SDK binary and the missing optional API. It does not replace WebView2 or establish compatibility with every SDK/runtime combination. The standalone renderer rewrite still has its separate regression-testing boundary described above.
 
 ## Synchronization finding
 

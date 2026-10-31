@@ -2,7 +2,9 @@
 
 ## Startup
 
-`CommandMetal.exe` is a Windows x64 .NET Framework 4.8 executable. It sets its working directory to its installation directory, optionally starts diagnostics, creates a hidden native seed window and a BGRA Direct3D 11 swap chain, and installs the adapters before invoking the original managed `Command.exe` entry point. A native `STATIC` window avoids initializing WinForms before the game's own protected startup code.
+The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs the targeted WebView2 capability guard, and invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
+
+`CommandMetal.exe` sets its working directory to its installation directory, optionally starts diagnostics, creates a hidden native seed window and a BGRA Direct3D 11 swap chain, and installs the adapters before invoking the original managed `Command.exe` entry point. A native `STATIC` window avoids initializing WinForms before the game's own protected startup code.
 
 The adapters call the Windows COM ABI directly. `NativeGraphics.cs` contains a small set of interface identifiers and a raw `D2D1CreateFactory` declaration. There is no compile-time or runtime dependency on the game's `DirectN.dll`. The game continues to load its own dependencies normally.
 
@@ -19,6 +21,18 @@ The adapters call the Windows COM ABI directly. `NativeGraphics.cs` contains a s
 | `Diagnostics.cs` | Session logs and opt-in exception/GC counters |
 | `D2DPerf.cs` | Opt-in timing of selected Direct2D drawing calls |
 | `GraphicsProbe.cs` | Manual pixel readback and state-restoration integration test |
+| `BrowserBootstrap.cs` | Embedded dependency resolution and browser guard before renderer startup |
+| `WebViewGuard.cs` | Narrow capability check for an optional WebView2 Settings8 setter |
+
+## WebView2 capability guard
+
+The tested game ships WebView2 SDK 1.0.2151.40 while its Wine bottle has Runtime 109. The SDK's `IsReputationCheckingRequired` setter requests `ICoreWebView2Settings8`, which is unavailable in that runtime. The failed interface cast is wrapped in `NotImplementedException` and can interrupt database-pane initialization.
+
+The bootstrap validates the SDK file SHA-256, the actual loaded module MVID, and the loaded file hash. It then installs a Harmony prefix on that single managed setter. The prefix reads the SDK wrapper's borrowed `_rawNative` COM object and calls `QueryInterface` for Settings8 (`9e6b0e8f-86ad-4e81-8147-a9b5edb68650`). Only `E_NOINTERFACE` skips the optional setter, retaining the runtime's browser defaults. Supported interfaces and other failures are forwarded to the original setter. Acquired native references are released; the borrowed RCW is never released through `ReleaseComObject`.
+
+The validated Core.dll SHA-256 is `4045f33c0cc195950aa92908bab5f904f41f04f54cb2219c11ddddf0268e1a4d`, with MVID `293b524b-c2df-42fc-b7b5-f77c1008e0b7`. Unknown SDK builds are logged and left unchanged. No Microsoft DLL is rewritten. Harmony 2.3.3 is embedded in the bootstrap; its [MIT license](../third-party/Harmony-LICENSE.txt) is included in the package.
+
+Microsoft lists Settings8 and this property in the [Runtime 112 release notes](https://learn.microsoft.com/en-us/microsoft-edge/webview2/release-notes/sdk/1-0-1722-45). The workaround leaves existing reputation-checking behavior in place when the control API is unavailable.
 
 ## Surface adapter
 
