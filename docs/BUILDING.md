@@ -50,7 +50,7 @@ To intentionally update dependencies, edit the relevant `PackageReference` in `D
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` runs on pushes, pull requests, and manual dispatch. It uses a Windows runner, installs .NET 10 and Python, runs host-side installer/package tests, builds the three executables, runs both launcher `--version` checks without the game installed, and verifies the bootstrap's embedded dependency by applying and removing a prefix on a self-test method. It uploads the ZIP as `CommandMetal-win-x64` with 30-day retention.
+`.github/workflows/build.yml` runs on pushes, pull requests, and manual dispatch. It uses a Windows runner, installs .NET 10 and Python, runs host-side installer/package tests, builds the three executables, runs both launcher `--version` checks without the game installed, and verifies the bootstrap's embedded dependency by applying and removing a prefix on a self-test method. The same self-test also uses owned WinForms controls to exercise sidebar width enforcement, resizing, hidden/offscreen restoration, and identity-change rollback. It uploads the ZIP as `CommandMetal-win-x64` with 30-day retention.
 
 Official actions are pinned to commit SHAs. The workflow requests read-only repository permission, does not require secrets, and does not create releases or publish to a package registry. GitHub's [artifact documentation](https://docs.github.com/en/actions/tutorials/store-and-share-data) explains how to download an artifact from a workflow run.
 

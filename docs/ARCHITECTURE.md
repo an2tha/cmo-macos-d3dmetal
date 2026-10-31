@@ -2,7 +2,7 @@
 
 ## Startup
 
-The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs the targeted WebView2 capability guard, and invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
+The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs the targeted WebView2 capability guard and deferred sidebar layout hook, and invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
 
 `CommandMetal.exe` sets its working directory to its installation directory, optionally starts diagnostics, creates a hidden native seed window and a BGRA Direct3D 11 swap chain, and installs the adapters before invoking the original managed `Command.exe` entry point. A native `STATIC` window avoids initializing WinForms before the game's own protected startup code.
 
@@ -22,6 +22,7 @@ The adapters call the Windows COM ABI directly. `NativeGraphics.cs` contains a s
 | `D2DPerf.cs` | Opt-in timing of selected Direct2D drawing calls |
 | `GraphicsProbe.cs` | Manual pixel readback and state-restoration integration test |
 | `BrowserBootstrap.cs` | Embedded dependency resolution and browser guard before renderer startup |
+| `PanelLayout.cs` | Deferred selected-sidebar identification, map width reservation, and rollback |
 | `WebViewGuard.cs` | Narrow capability check for an optional WebView2 Settings8 setter |
 
 ## WebView2 capability guard
@@ -33,6 +34,16 @@ The bootstrap validates the SDK file SHA-256, the actual loaded module MVID, and
 The validated Core.dll SHA-256 is `4045f33c0cc195950aa92908bab5f904f41f04f54cb2219c11ddddf0268e1a4d`, with MVID `293b524b-c2df-42fc-b7b5-f77c1008e0b7`. Unknown SDK builds are logged and left unchanged. No Microsoft DLL is rewritten. Harmony 2.3.3 is embedded in the bootstrap; its [MIT license](../third-party/Harmony-LICENSE.txt) is included in the package.
 
 Microsoft lists Settings8 and this property in the [Runtime 112 release notes](https://learn.microsoft.com/en-us/microsoft-edge/webview2/release-notes/sdk/1-0-1722-45). The workaround leaves existing reputation-checking behavior in place when the control API is unavailable.
+
+## Selected-unit sidebar layout
+
+The tested layout placed a 270-pixel selected-unit ElementHost over full-width native map windows. The WPF body measured and loaded normally. Reserving space in both `Panel_WW` and `WorldWindow` restored the complete panel in a controlled in-game test.
+
+`PanelLayout` verifies the Command.exe SHA-256 (`53fc37bb0b634adbe46f4ddf3a87c99847d273cc6f1d980ba9796da6389d25fc`). A base `Form.OnShown` postfix waits for the real `Command.MainForm`, then discovers the exact selected host, WPF child, map, and map parent from reviewed fields on its UI thread. No forms or WPF controls are constructed before the game's protected startup. The hover host is excluded.
+
+A `Control.SetBoundsCore` prefix caps widths only on those two exact map objects. Coalesced UI events update the reserved width on resize and sidebar movement/visibility changes. Hidden or offscreen sidebars restore the full map width. The discovery timer stops after attachment; there is no per-frame visual-tree scan. Changed identities or parent relationships disable enforcement, unsubscribe events, and restore widths on the original controls where safe. The inactive bounds prefix stays rooted until process exit.
+
+`CMO_PANEL_LAYOUT=0` skips installation. Unknown game hashes are logged and left unchanged. The automatic integration still needs its fresh-launch and transition validation; the confirmed in-game result applies to the controlled width-reservation test.
 
 ## Surface adapter
 

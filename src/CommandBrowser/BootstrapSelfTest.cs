@@ -35,6 +35,8 @@ internal static class BootstrapSelfTest
             if (Target() != 1)
                 throw new InvalidOperationException("The original method was not restored.");
             Console.WriteLine("PASS: embedded Harmony resolved, prefix applied, original restored.");
+            PanelLayout.SelfTest();
+            Console.WriteLine("PASS: sidebar bounds, resize, visibility, and rollback self-test.");
             return 0;
         }
         catch (Exception error)

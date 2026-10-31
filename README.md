@@ -4,9 +4,9 @@ An experimental D3DMetal compatibility launcher for **Command: Modern Operations
 
 CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by Wine's Direct2D renderer. It runs the original `Command.exe` in the same process, with process-local graphics adapters installed first. The game executable and its libraries are not patched on disk.
 
-The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. Use the supplied launch script to enable both fixes.
+The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. It also reserves map space for the selected-unit sidebar on the reviewed game build. Use the supplied launch script to enable these fixes.
 
-**Status:** the original prototype renders a usable map. Some lag and sidebar clipping remain. Turning MSync off has produced an initial user report of crash-free play, but intermittent freezes are still under investigation. This standalone rewrite builds without game files and needs its own in-game validation before it can replace the prototype with confidence.
+**Status:** the original prototype renders a usable map. Some lag remains. A controlled sidebar test restored the full unit panel; automatic startup, resizing, and hide/show validation are in progress. Turning MSync off has produced an initial user report of crash-free play, but intermittent freezes are still under investigation. This standalone rewrite builds without game files and needs its own in-game validation before it can replace the prototype with confidence.
 
 ## Requirements
 
@@ -67,7 +67,7 @@ CROSSOVER_APP='/Applications/CrossOver.app' \
 zsh scripts/Play-D3DMetal.command
 ```
 
-The normal CrossOver **Command** icon starts the original executable without these adapters. To use both fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
+The normal CrossOver **Command** icon starts the original executable without these adapters. To use these fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
 
 ## Remove or roll back
 
@@ -81,4 +81,4 @@ Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe
 - [Known issues and compatibility](docs/COMPATIBILITY.md)
 - [Contributing and test expectations](CONTRIBUTING.md)
 
-This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental sidebar or bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.
+This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.

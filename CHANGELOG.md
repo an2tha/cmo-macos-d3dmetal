@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Reserve map space behind the selected-unit sidebar for the reviewed game build, without changing the WPF panel content.
+- Follow window resizing and sidebar visibility, with an environment opt-out and rollback when control identities change.
+- Extend the Windows bootstrap self-test to exercise actual WinForms bounds hooks and restoration.
+
+The controlled in-game test restored the complete panel and usable controls, scrolling, and map navigation. The automatic integration still needs a fresh in-game launch and transition checks.
+
 ## 0.1.1
 
 - Fix blank database-entry details on the tested WebView2 Runtime 109 by guarding the unsupported optional Settings8 reputation-setting call.

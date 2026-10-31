@@ -13,10 +13,10 @@ The original state adapter passed isolated pixel/readback and state-restoration 
 | Black or unresponsive map on the affected D3DMetal backend | Addressed by the original surface/context-state prototype; rewrite needs regression testing | Scenario loads, map renders, pan/zoom and unit dialogs remain usable |
 | Whole-window freezes or unexpected exits | Under investigation; first user report with MSync off had no crashes yet | Repeated representative sessions without the reported freeze, with comparable diagnostics |
 | Slow map operations, especially zoomed out | Improved by drawing batches in the prototype, still present | Smoother pan/zoom without incorrect graphics or state restoration |
-| Right-side Group/Unit Status panel clipped beneath the map | Unresolved, reported on both Wine and D3DMetal | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
+| Right-side Group/Unit Status panel clipped beneath the map | Controlled map-width test passed; automatic integration and transitions pending | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
 | Database Viewer list populates but entry details stay blank | Resolved in the tested prototype with the Settings8 compatibility bootstrap | Details render after selecting an entry, with the same map renderer retained |
 
-The sidebar investigation remains separate from this package. A native map-region experiment failed the user's visual test and was undone. The actual selected-sidebar host was not conclusively identified. No experimental sidebar patch is shipped here.
+The selected WPF sidebar was identified by its backing field and child identity, separately from the hover panel. Its content measured normally, while the native map extended beneath it. Reserving the sidebar width in both map controls restored the full panel, and the user confirmed controls, scrolling, and map navigation were usable. The automatic integration follows resizing and visibility on the game UI thread. It is restricted to the reviewed Command.exe hash; a fresh launch and transition checks remain pending.
 
 ## Database Viewer finding
 

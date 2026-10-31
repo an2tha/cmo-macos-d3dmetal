@@ -6,6 +6,10 @@ Start through `CommandBrowser.exe` or the supplied launch script. The renderer-o
 
 Browser logs record guard installation, SDK identity mismatches, and skipped calls. Unknown SDK hashes are left unchanged. `CMO_WEBVIEW_COMPAT=0` disables the guard for a controlled comparison. Neither the SDK nor the WebView2 runtime is replaced by this fix.
 
+## Unit status panel covered by the map
+
+Start through `CommandBrowser.exe` or the supplied launch script. On the reviewed game build, the bootstrap reserves map width behind the selected sidebar. The hover panel is not the layout target. Unknown game hashes retain the original layout and are logged. `CMO_PANEL_LAYOUT=0` disables this fix on the next launch for comparison. Automatic startup and transition validation are still in progress.
+
 ## Synchronization mismatch at launch
 
 A Wine server already running with MSync enabled cannot be reused for this MSync-off launch. Save and close every application in that bottle, use CrossOver's **Quit All Applications**, verify MSync is off, and launch again. The script deliberately does not terminate the server automatically.
@@ -31,6 +35,7 @@ Additional diagnostics are opt-in:
 | `CMO_D2D_PROFILE=1` | Selected Direct2D call counts and timing; changes measurement overhead |
 | `CMO_D2D_BATCHING=0` | Disable drawing batching to compare the ordinary state-emulation path |
 | `CMO_LOG_DIR` | Directory for CommandMetal logs |
+| `CMO_PANEL_LAYOUT=0` | Disable selected-sidebar map width reservation in CommandBrowser |
 | `CMO_WEBVIEW_COMPAT=0` | Disable the optional Settings8 compatibility guard in CommandBrowser |
 
 With a CLI launch, native Wine errors also appear in the terminal. For a controlled capture, redirect stdout/stderr to a file. CrossOver's `--cx-log` option can add verbose trace channels; the launcher avoids it so ordinary testing does not accidentally include heavy exception-unwind tracing.
