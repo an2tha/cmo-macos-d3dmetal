@@ -6,6 +6,8 @@ Install a .NET 10 SDK and Python 3.10 or newer. The resulting executables target
 
 The only NuGet dependency is Microsoft's `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3, marked private to the build. It provides the framework reference assemblies when building outside Windows. Lock files pin its resolved dependencies and content hashes. No game DLL, proprietary configuration file, Apple library, or CrossOver installation is required for compilation.
 
+Both projects explicitly target the `win-x64` runtime so locked restore uses the same dependency graph on every host. Runtime identifiers are not appended to output directories; packaging continues to read `bin/Release/net48`.
+
 ## Commands
 
 ```sh
