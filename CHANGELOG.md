@@ -2,11 +2,14 @@
 
 ## Unreleased
 
-- Reserve map space behind the selected-unit sidebar for the reviewed game build, without changing the WPF panel content.
-- Follow window resizing and sidebar visibility, with an environment opt-out and rollback when control identities change.
-- Extend the Windows bootstrap self-test to exercise actual WinForms bounds hooks and restoration.
+- Add opt-in selected-unit sidebar layout for the reviewed game build.
+- Synchronize map bounds through the game's normal renderer resize routine, preserving map click coordinates.
+- Wait for an idle renderer and next-frame camera updates; restore bounds and viewport together on failure.
+- Defer rollback during a resize, reject replaced map targets, and retry transient restoration failures with backoff.
+- Add an opt-in guard for the captured MainForm message-handler activation wait, preserving other activation callers.
+- Extend Windows framework self-tests with viewport failures, camera lag, busy rendering, reentrant rollback and focus caller boundaries.
 
-The controlled in-game test restored the complete panel and usable controls, scrolling, and map navigation. The automatic integration still needs a fresh in-game launch and transition checks.
+The controlled panel/renderer test passed, then a later whole-window freeze was captured in `Form.Activate` / `SetForegroundWindow`. The guard matched that path during a subsequent normal startup. Combined automatic behavior and longer stability remain unvalidated; both UI flags default to off. The playable prototype and standalone renderer rewrite retain separate validation boundaries.
 
 ## 0.1.1
 
@@ -30,5 +33,3 @@ The isolated API/HTML tests passed, and the user confirmed database details rend
 - Add locked dependency restore, ZIP packaging, host-side tests, and GitHub Actions artifacts.
 
 The standalone rewrite has not yet completed in-game regression testing. Sidebar clipping and intermittent-freeze investigation remain open. Historical local experiments and proprietary inputs are excluded from this repository.
-
-The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.

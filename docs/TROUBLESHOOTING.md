@@ -6,9 +6,15 @@ Start through `CommandBrowser.exe` or the supplied launch script. The renderer-o
 
 Browser logs record guard installation, SDK identity mismatches, and skipped calls. Unknown SDK hashes are left unchanged. `CMO_WEBVIEW_COMPAT=0` disables the guard for a controlled comparison. Neither the SDK nor the WebView2 runtime is replaced by this fix.
 
-## Unit status panel covered by the map
+## Unit status panel and map click offset
 
-Start through `CommandBrowser.exe` or the supplied launch script. On the reviewed game build, the bootstrap reserves map width behind the selected sidebar. The hover panel is not the layout target. Unknown game hashes retain the original layout and are logged. `CMO_PANEL_LAYOUT=0` disables this fix on the next launch for comparison. Automatic startup and transition validation are still in progress.
+The controlled fix requires narrowing the native map and invoking the game's normal renderer resize. Changing only map bounds leaves the drawing and picking dimensions stale. The opt-in `CMO_PANEL_LAYOUT=1` path coordinates these steps and checks the camera after the next frame. Automatic integration still requires in-game validation.
+
+If a test leaves clicks offset, save and close the game, then relaunch with `CMO_PANEL_LAYOUT=0`. Unknown game hashes and unsupported layouts are logged and left unchanged. Do not combine the package with older private sidebar probes.
+
+## Window freezes during activation
+
+One captured freeze blocked inside `SetForegroundWindow` from a MainForm message-handler activation call. `CMO_FOCUS_COMPAT=1` enables the narrow experimental guard for that exact caller. Other activation paths retain normal behavior. Validate switching apps, closing dialogs and returning keyboard focus before relying on it. A guard counter is evidence that the path was matched, not proof of long-term stability.
 
 ## Synchronization mismatch at launch
 
@@ -35,7 +41,8 @@ Additional diagnostics are opt-in:
 | `CMO_D2D_PROFILE=1` | Selected Direct2D call counts and timing; changes measurement overhead |
 | `CMO_D2D_BATCHING=0` | Disable drawing batching to compare the ordinary state-emulation path |
 | `CMO_LOG_DIR` | Directory for CommandMetal logs |
-| `CMO_PANEL_LAYOUT=0` | Disable selected-sidebar map width reservation in CommandBrowser |
+| `CMO_PANEL_LAYOUT=1` | Opt into paired sidebar bounds and renderer/camera synchronization |
+| `CMO_FOCUS_COMPAT=1` | Opt into the captured MainForm activation caller guard |
 | `CMO_WEBVIEW_COMPAT=0` | Disable the optional Settings8 compatibility guard in CommandBrowser |
 
 With a CLI launch, native Wine errors also appear in the terminal. For a controlled capture, redirect stdout/stderr to a file. CrossOver's `--cx-log` option can add verbose trace channels; the launcher avoids it so ordinary testing does not accidentally include heavy exception-unwind tracing.
@@ -45,5 +52,3 @@ With a CLI launch, native Wine errors also appear in the terminal. For a control
 Record the game/CrossOver/macOS/backend versions, synchronization settings, scenario name, approximate play duration, last action, and whether the whole window or only the map stopped responding. Include small relevant log excerpts after reviewing them for local paths and scenario details. Do not attach game executables, game DLLs, saved scenarios, or full memory dumps to public issues.
 
 Main-thread GC waits, a zero wrapper exit status, or a missing managed exception do not by themselves prove a cause. Keep observations separate from hypotheses. Avoid attaching a debugger or running intrusive UI inspection during a session with unsaved progress.
-
-The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.

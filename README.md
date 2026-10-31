@@ -4,9 +4,9 @@ An experimental D3DMetal compatibility launcher for **Command: Modern Operations
 
 CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by Wine's Direct2D renderer. It runs the original `Command.exe` in the same process, with process-local graphics adapters installed first. The game executable and its libraries are not patched on disk.
 
-The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. It also reserves map space for the selected-unit sidebar on the reviewed game build. Use the supplied launch script to enable these fixes.
+The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. Optional UI compatibility code can synchronize the selected-unit sidebar with the map viewport and contain a captured window-activation wait. These UI changes are experimental and disabled by default.
 
-**Status:** the original prototype renders a usable map. Some lag remains. A controlled sidebar test restored the full unit panel; automatic startup, resizing, and hide/show validation are in progress. Turning MSync off has produced an initial user report of crash-free play, but intermittent freezes are still under investigation. This standalone rewrite builds without game files and needs its own in-game validation before it can replace the prototype with confidence.
+**Status:** the original prototype renders a playable map, with remaining lag. A controlled panel test restored the complete sidebar and correct map clicks by invoking the game's normal renderer resize. A later freeze was captured in a window-activation call; its narrow guard has only initial startup evidence. The combined automatic UI implementation still needs in-game validation. This repository's standalone renderer rewrite also retains its separate graphics regression-testing requirement.
 
 ## Requirements
 
@@ -69,6 +69,18 @@ zsh scripts/Play-D3DMetal.command
 
 The normal CrossOver **Command** icon starts the original executable without these adapters. To use these fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
 
+## Experimental sidebar and focus tests
+
+These options are restricted to the reviewed Command build and are off by default. The normal renderer resize passed a controlled in-game test, including panel controls, selection, pan/zoom and context menus. Automatic startup, window resizing, sidebar hide/show, focus transitions and longer stability still need validation together.
+
+After saving and closing the game, start a separate test session with:
+
+```sh
+CMO_PANEL_LAYOUT=1 CMO_FOCUS_COMPAT=1 zsh scripts/Play-D3DMetal.command
+```
+
+For an extracted package, use `Play-D3DMetal.command` without the `scripts/` prefix. `CMO_PANEL_LAYOUT=1` reserves sidebar space and synchronizes the renderer and picking camera. `CMO_FOCUS_COMPAT=1` guards the exact message-handler activation path captured during one freeze. Unknown game hashes retain normal behavior. Omit these variables or set them to `0` on the next launch to disable the experiments.
+
 ## Remove or roll back
 
 Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe`, and their `.exe.config` files, or restore those files from a `CommandMetal-backups` subdirectory. Each backup's `manifest.json` records which files previously existed: restore those, and remove newly added files marked as originally absent. Launch the original `Command.exe` afterward. The installer does not replace `Command.exe`, `DirectN.dll`, the WebView2 SDK, or `Command.exe.config`.
@@ -82,5 +94,3 @@ Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe
 - [Contributing and test expectations](CONTRIBUTING.md)
 
 This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.
-
-The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.

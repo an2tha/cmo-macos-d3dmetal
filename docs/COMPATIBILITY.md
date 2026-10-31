@@ -13,10 +13,16 @@ The original state adapter passed isolated pixel/readback and state-restoration 
 | Black or unresponsive map on the affected D3DMetal backend | Addressed by the original surface/context-state prototype; rewrite needs regression testing | Scenario loads, map renders, pan/zoom and unit dialogs remain usable |
 | Whole-window freezes or unexpected exits | Under investigation; first user report with MSync off had no crashes yet | Repeated representative sessions without the reported freeze, with comparable diagnostics |
 | Slow map operations, especially zoomed out | Improved by drawing batches in the prototype, still present | Smoother pan/zoom without incorrect graphics or state restoration |
-| Right-side Group/Unit Status panel clipped beneath the map | Controlled map-width test passed; automatic integration and transitions pending | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
+| Right-side Group/Unit Status panel clipped beneath the map | Controlled paired map/renderer resize passed; automatic integration and transitions pending | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
 | Database Viewer list populates but entry details stay blank | Resolved in the tested prototype with the Settings8 compatibility bootstrap | Details render after selecting an entry, with the same map renderer retained |
 
-The selected WPF sidebar was identified by its backing field and child identity, separately from the hover panel. Its content measured normally, while the native map extended beneath it. Reserving the sidebar width in both map controls restored the full panel, and the user confirmed controls, scrolling, and map navigation were usable. The automatic integration follows resizing and visibility on the game UI thread. It is restricted to the reviewed Command.exe hash; a fresh launch and transition checks remain pending.
+The selected sidebar's identity and WPF body were confirmed separately from the hover host. Width-only reservation exposed the panel but broke map click alignment. Calling the game's normal renderer resize after the bounds change corrected renderer and camera dimensions, and the user confirmed the full panel and normal map controls. The automatic implementation is available only through `CMO_PANEL_LAYOUT=1`; startup and transition validation remain pending.
+
+## Captured window-activation freeze
+
+After the successful controlled panel test, the user reported another whole-window freeze. The process remained alive. Passive CLR inspection captured `MainForm.WndProc -> Form.Activate -> SetForegroundWindow` on the UI thread, while a native sample showed a windowing mutex wait and idle graphics workers. The simulation thread remained active. This is distinct evidence from the earlier GC-wait sample; a shared cause has not been established.
+
+The opt-in focus guard matched the observed activation caller during the next normal startup. The user then quit the session after the start menu was dismissed, explicitly identifying that dismissal as normal behavior. The combined panel/focus test was not completed. `CMO_FOCUS_COMPAT=1` remains experimental, with app switching, child dialogs, keyboard focus and longer stability still requiring validation.
 
 ## Database Viewer finding
 
@@ -39,5 +45,3 @@ An earlier frozen session had its main thread waiting for CLR garbage collection
 - Shared COM vtables and method slots depend on the backend's implementation. A CrossOver/D3DMetal update requires regression testing.
 - `GraphicsProbe.exe` tests a small rendering path, not the full simulation, WPF interface, or multi-hour game stability.
 - Intel Macs, other game builds, other CrossOver versions, DXVK, and native Windows are not validated targets for this launcher.
-
-The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.
