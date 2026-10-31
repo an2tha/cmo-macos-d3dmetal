@@ -8,13 +8,13 @@ Browser logs record guard installation, SDK identity mismatches, and skipped cal
 
 ## Unit status panel and map click offset
 
-The controlled fix requires narrowing the native map and invoking the game's normal renderer resize. Changing only map bounds leaves the drawing and picking dimensions stale. The opt-in `CMO_PANEL_LAYOUT=1` path coordinates these steps and checks the camera after the next frame. Automatic integration still requires in-game validation.
+The controlled fix requires narrowing the native map and invoking the game's normal renderer resize. Changing only map bounds leaves the drawing and picking dimensions stale. The opt-in `CMO_PANEL_LAYOUT=1` path coordinates these steps and checks the camera after the next frame. The automatic integration passed a controlled in-game panel, input and transition check.
 
 If a test leaves clicks offset, save and close the game, then relaunch with `CMO_PANEL_LAYOUT=0`. Unknown game hashes and unsupported layouts are logged and left unchanged. Do not combine the package with older private sidebar probes.
 
 ## Window freezes during activation
 
-One captured freeze blocked inside `SetForegroundWindow` from a MainForm message-handler activation call. `CMO_FOCUS_COMPAT=1` enables the narrow experimental guard for that exact caller. Other activation paths retain normal behavior. Validate switching apps, closing dialogs and returning keyboard focus before relying on it. A guard counter is evidence that the path was matched, not proof of long-term stability.
+One captured freeze blocked inside `SetForegroundWindow` from a MainForm message-handler activation call. `CMO_FOCUS_COMPAT=1` enables the narrow experimental guard for that exact caller. Other activation paths retain normal behavior. Those focus transitions passed the controlled test, while longer sessions remain unvalidated. A guard counter is evidence that the path was matched, not proof of long-term stability.
 
 ## Synchronization mismatch at launch
 

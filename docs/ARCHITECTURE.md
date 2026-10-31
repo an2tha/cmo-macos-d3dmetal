@@ -50,7 +50,7 @@ A `Control.SetBoundsCore` prefix enforces widths only on the two exact map objec
 
 Rollback disables enforcement first, restores original-object bounds, then restores the viewport through the same routine. It waits until an in-progress resize returns and retains pending recovery after failures. Transient failures use slower retries; replaced targets are never resized. Once geometry is stable, maintenance timers stop. The inactive framework prefix remains rooted until process exit.
 
-`CMO_PANEL_LAYOUT=1` opts into this automatic implementation. The controlled resize passed, but the automatic integration and its resize/hide/show transitions still need in-game validation. Static metadata alone cannot establish the protected resize routine's behavior.
+`CMO_PANEL_LAYOUT=1` opts into this automatic implementation. The controlled resize and subsequent automatic integration passed user-confirmed selection, resize/hide/show, scrolling and map-input checks. Static metadata alone cannot establish the protected resize routine's behavior.
 
 ## Window-activation guard
 
@@ -60,7 +60,7 @@ With `CMO_FOCUS_COMPAT=1`, `FocusGuard` validates the same game hash/path and re
 
 The prefix inspects at most64 captured frames, while stack capture itself can be longer. It contains inspection failures and defaults to the original call. It performs no focus/handle queries, UI dispatch or file logging in the activation path. A background reporter starts only after the real MainForm is shown, emits changed counters/errors, and stops on disposal.
 
-The guard matched one call during a subsequent normal startup and window/display move. App switching, dialog closure, keyboard focus and extended play remain pending tests. It is disabled by default.
+The guard matched several calls during a subsequent combined test. The user confirmed normal app switching, unit/database dialog closure and keyboard focus, without another freeze during the check. Extended play and other environments remain unvalidated. It is disabled by default in the public launcher.
 
 ## Surface adapter
 

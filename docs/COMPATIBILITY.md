@@ -11,18 +11,18 @@ The original state adapter passed isolated pixel/readback and state-restoration 
 | Issue | Status | Acceptance condition |
 | --- | --- | --- |
 | Black or unresponsive map on the affected D3DMetal backend | Addressed by the original surface/context-state prototype; rewrite needs regression testing | Scenario loads, map renders, pan/zoom and unit dialogs remain usable |
-| Whole-window freezes or unexpected exits | Under investigation; first user report with MSync off had no crashes yet | Repeated representative sessions without the reported freeze, with comparable diagnostics |
+| Whole-window freezes or unexpected exits | Captured activation wait guarded in a controlled test; other freezes and longer stability remain under investigation | Repeated representative sessions without the reported freeze, with comparable diagnostics |
 | Slow map operations, especially zoomed out | Improved by drawing batches in the prototype, still present | Smoother pan/zoom without incorrect graphics or state restoration |
-| Right-side Group/Unit Status panel clipped beneath the map | Controlled paired map/renderer resize passed; automatic integration and transitions pending | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
+| Right-side Group/Unit Status panel clipped beneath the map | Paired resize and automatic integration passed the user's panel/input/transition checks | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
 | Database Viewer list populates but entry details stay blank | Resolved in the tested prototype with the Settings8 compatibility bootstrap | Details render after selecting an entry, with the same map renderer retained |
 
-The selected sidebar's identity and WPF body were confirmed separately from the hover host. Width-only reservation exposed the panel but broke map click alignment. Calling the game's normal renderer resize after the bounds change corrected renderer and camera dimensions, and the user confirmed the full panel and normal map controls. The automatic implementation is available only through `CMO_PANEL_LAYOUT=1`; startup and transition validation remain pending.
+The selected sidebar's identity and WPF body were confirmed separately from the hover host. Width-only reservation exposed the panel but broke map click alignment. Calling the game's normal renderer resize after the bounds change corrected renderer and camera dimensions, and the user confirmed the full panel and normal map controls. The automatic implementation is available through `CMO_PANEL_LAYOUT=1`. The user confirmed automatic startup, complete panel/input behavior, resizing, hide/show, empty/reselected-unit state and scrolling in the combined test.
 
 ## Captured window-activation freeze
 
 After the successful controlled panel test, the user reported another whole-window freeze. The process remained alive. Passive CLR inspection captured `MainForm.WndProc -> Form.Activate -> SetForegroundWindow` on the UI thread, while a native sample showed a windowing mutex wait and idle graphics workers. The simulation thread remained active. This is distinct evidence from the earlier GC-wait sample; a shared cause has not been established.
 
-The opt-in focus guard matched the observed activation caller during the next normal startup. The user then quit the session after the start menu was dismissed, explicitly identifying that dismissal as normal behavior. The combined panel/focus test was not completed. `CMO_FOCUS_COMPAT=1` remains experimental, with app switching, child dialogs, keyboard focus and longer stability still requiring validation.
+The opt-in focus guard matched the observed activation caller during the next normal startup. After an interrupted test was closed normally, a fresh combined automatic test passed user-confirmed app switching, unit/database dialogs, keyboard focus, viewport resizing and sidebar transitions without another freeze during the check. `CMO_FOCUS_COMPAT=1` remains experimental because longer stability and other environments are unvalidated. The controlled test retained the original playable graphics renderer.
 
 ## Database Viewer finding
 

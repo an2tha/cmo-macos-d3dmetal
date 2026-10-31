@@ -6,7 +6,7 @@ CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by 
 
 The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. Optional UI compatibility code can synchronize the selected-unit sidebar with the map viewport and contain a captured window-activation wait. These UI changes are experimental and disabled by default.
 
-**Status:** the original prototype renders a playable map, with remaining lag. A controlled panel test restored the complete sidebar and correct map clicks by invoking the game's normal renderer resize. A later freeze was captured in a window-activation call; its narrow guard has only initial startup evidence. The combined automatic UI implementation still needs in-game validation. This repository's standalone renderer rewrite also retains its separate graphics regression-testing requirement.
+**Status:** the original prototype renders a playable map, with remaining lag. A controlled panel test restored the complete sidebar and correct map clicks by invoking the game's normal renderer resize. A later freeze was captured in a window-activation call. The combined automatic UI implementation then passed a user-confirmed check of selection, resizing, sidebar visibility, app switching, dialogs and database details without another freeze. Longer stability remains under investigation. This repository's standalone renderer rewrite also retains its separate graphics regression-testing requirement.
 
 ## Requirements
 
@@ -71,7 +71,7 @@ The normal CrossOver **Command** icon starts the original executable without the
 
 ## Experimental sidebar and focus tests
 
-These options are restricted to the reviewed Command build and are off by default. The normal renderer resize passed a controlled in-game test, including panel controls, selection, pan/zoom and context menus. Automatic startup, window resizing, sidebar hide/show, focus transitions and longer stability still need validation together.
+These options are restricted to the reviewed Command build and are off by default. The combined bootstrap passed a controlled in-game check of automatic startup, selection, panel scrolling, pan/zoom, context menus, resizing, sidebar hide/show, app switching, unit/database dialogs and keyboard focus. Longer sessions and other environments remain unvalidated.
 
 After saving and closing the game, start a separate test session with:
 
