@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>GraphicsProbe</AssemblyName>
+    <StartupObject>GraphicsProbe</StartupObject>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../CommandMetal/*.cs" Exclude="../CommandMetal/CommandMetal.cs" Link="Adapters/%(Filename)%(Extension)" />
+    <None Include="../CommandMetal/App.config" Link="App.config" />
+  </ItemGroup>
+</Project>

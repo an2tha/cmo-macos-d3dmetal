@@ -1,0 +1,30 @@
+# Build products and downloaded tooling
+**/bin/
+**/obj/
+dist/
+.tools/
+.nuget/
+
+# Proprietary inputs and local investigations never belong in this repository.
+*.exe
+*.dll
+*.pdb
+*.log
+*.csv
+*.scen
+*.save
+*.saz
+*.dmp
+*.ips
+*.zip
+*.nupkg
+investigation/
+candidates/
+backups/
+Command.exe.config
+CommandMetal.exe.config
+.DS_Store
+__pycache__/
+*.pyc
+.vs/
+.idea/

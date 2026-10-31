@@ -1,0 +1,34 @@
+# Compatibility and known issues
+
+## Evidence boundaries
+
+The working prototype was tested with Command v1.10 build 1900.20, CrossOver 26.3, Apple D3DMetal 4.0b2, macOS 27.2, and an Apple M4 Max. Its map rendered and was playable, with remaining lag. Those observations describe the prototype, not a completed validation of the standalone rewrite in this repository.
+
+The original state adapter passed isolated pixel/readback and state-restoration probes, including repeated drawing, explicit Flush, and allocation stress. The cleaned `GraphicsProbe.exe` must be rerun on the intended backend after any interop change. Compilation and CI cannot establish D3DMetal behavior.
+
+## Current issues
+
+| Issue | Status | Acceptance condition |
+| --- | --- | --- |
+| Black or unresponsive map on the affected D3DMetal backend | Addressed by the original surface/context-state prototype; rewrite needs regression testing | Scenario loads, map renders, pan/zoom and unit dialogs remain usable |
+| Whole-window freezes or unexpected exits | Under investigation; first user report with MSync off had no crashes yet | Repeated representative sessions without the reported freeze, with comparable diagnostics |
+| Slow map operations, especially zoomed out | Improved by drawing batches in the prototype, still present | Smoother pan/zoom without incorrect graphics or state restoration |
+| Right-side Group/Unit Status panel clipped beneath the map | Unresolved, reported on both Wine and D3DMetal | Full panel, including the no-selection state, survives selection, resizing, scrolling, and map movement |
+
+The sidebar investigation remains separate from this package. A native map-region experiment failed the user's visual test and was undone. The actual selected-sidebar host was not conclusively identified. No experimental sidebar patch is shipped here.
+
+## Synchronization finding
+
+The MSync-off experiment kept the playable prototype's executable and configuration unchanged. A fresh Wine server was observed with `WINEMSYNC=0`, `WINEESYNC=0`, and `CX_GRAPHICS_BACKEND=d3dmetal`. The user subsequently reported normal play with no crashes yet. This makes synchronization a useful working hypothesis; it does not identify a proven root cause or guarantee that all hangs are fixed.
+
+An earlier frozen session had its main thread waiting for CLR garbage collection. That identifies a waiting location, not the thread or condition preventing collection from completing. Graphics workers were idle in that sample. A concurrent-GC configuration experiment was inconclusive and is not included.
+
+## Deliberate limits
+
+- State emulation covers bindings Wine Direct2D was observed to change. It does not preserve all UAV, predication, stream-output, or D3D11.1 constant-buffer subrange state.
+- Automatic resource-alias unbinding across shader stages can invalidate assumptions for unusual aliases.
+- The batch path assumes raw Direct3D work happens outside the Direct2D drawing batch, or after an explicit Flush.
+- The existing emulation handles a null incoming state differently from the complete native contract. Microsoft's [SwapDeviceContextState documentation](https://learn.microsoft.com/en-us/windows/win32/api/d3d11_1/nf-d3d11_1-id3d11devicecontext1-swapdevicecontextstate) specifies that a null state has no effect. This behavior is retained from the prototype and needs a dedicated test before changing it.
+- Shared COM vtables and method slots depend on the backend's implementation. A CrossOver/D3DMetal update requires regression testing.
+- `GraphicsProbe.exe` tests a small rendering path, not the full simulation, WPF interface, or multi-hour game stability.
+- Intel Macs, other game builds, other CrossOver versions, DXVK, and native Windows are not validated targets for this launcher.
