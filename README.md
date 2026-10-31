@@ -82,3 +82,5 @@ Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe
 - [Contributing and test expectations](CONTRIBUTING.md)
 
 This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.
+
+The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.

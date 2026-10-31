@@ -76,9 +76,9 @@ internal static class BrowserBootstrap
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void InstallLayout(string directory)
     {
-        if (Environment.GetEnvironmentVariable("CMO_PANEL_LAYOUT") == "0")
+        if (Environment.GetEnvironmentVariable("CMO_PANEL_LAYOUT") != "1")
         {
-            Log("Sidebar layout fix disabled by environment.");
+            Log("Experimental sidebar layout requires CMO_PANEL_LAYOUT=1; disabled by default.");
             return;
         }
         PanelLayout.Install(directory, Log);

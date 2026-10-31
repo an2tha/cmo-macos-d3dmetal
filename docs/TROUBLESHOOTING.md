@@ -45,3 +45,5 @@ With a CLI launch, native Wine errors also appear in the terminal. For a control
 Record the game/CrossOver/macOS/backend versions, synchronization settings, scenario name, approximate play duration, last action, and whether the whole window or only the map stopped responding. Include small relevant log excerpts after reviewing them for local paths and scenario details. Do not attach game executables, game DLLs, saved scenarios, or full memory dumps to public issues.
 
 Main-thread GC waits, a zero wrapper exit status, or a missing managed exception do not by themselves prove a cause. Keep observations separate from hypotheses. Avoid attaching a debugger or running intrusive UI inspection during a session with unsaved progress.
+
+The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.

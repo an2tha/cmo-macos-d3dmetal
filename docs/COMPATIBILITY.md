@@ -39,3 +39,5 @@ An earlier frozen session had its main thread waiting for CLR garbage collection
 - Shared COM vtables and method slots depend on the backend's implementation. A CrossOver/D3DMetal update requires regression testing.
 - `GraphicsProbe.exe` tests a small rendering path, not the full simulation, WPF interface, or multi-hour game stability.
 - Intel Macs, other game builds, other CrossOver versions, DXVK, and native Windows are not validated targets for this launcher.
+
+The width-reservation experiment exposed the panel but introduced a map-only click offset. Undoing it restored click alignment, confirmed by the user. It is disabled by default while viewport/input consistency is investigated. `CMO_PANEL_LAYOUT=1` is an explicit experimental opt-in; do not use it for normal play yet.
