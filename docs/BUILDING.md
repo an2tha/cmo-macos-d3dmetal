@@ -4,7 +4,7 @@
 
 Install a .NET 10 SDK and Python 3.10 or newer. The resulting executables target **.NET Framework 4.8, Windows x64**. The SDK version is a build requirement, not an additional runtime to install inside CrossOver.
 
-The only NuGet dependency is Microsoft's `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3, marked private to the build. It provides the framework reference assemblies when building outside Windows. Lock files pin its resolved dependencies and content hashes. No game DLL, proprietary configuration file, Apple library, or CrossOver installation is required for compilation.
+The build uses Microsoft's `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3 to provide framework reference assemblies outside Windows. The browser bootstrap also uses `Lib.Harmony` 2.3.3, embedded as a resource so installation needs no additional managed DLL. Lock files pin resolved dependencies and content hashes. No game DLL, proprietary configuration file, Apple library, or CrossOver installation is required for compilation.
 
 Both projects explicitly target the `win-x64` runtime so locked restore uses the same dependency graph on every host. Runtime identifiers are not appended to output directories; packaging continues to read `bin/Release/net48`.
 
@@ -28,6 +28,8 @@ dist/
   CommandMetal/
     CommandMetal.exe
     CommandMetal.exe.config
+    CommandBrowser.exe
+    CommandBrowser.exe.config
     GraphicsProbe.exe
     GraphicsProbe.exe.config
     Play-D3DMetal.command
@@ -37,17 +39,18 @@ dist/
     CONTRIBUTING.md
     LICENSE
     docs/
+    third-party/Harmony-LICENSE.txt
     SHA256SUMS
   CommandMetal-win-x64.zip
 ```
 
-The package configuration is a minimal framework declaration for build/version checks. The installer replaces the installed launcher's configuration with an exact copy of the user's `Command.exe.config`. Do not overwrite a game's configuration with the minimal build-time file.
+The package configurations are minimal framework declarations for build/version checks. The installer replaces both installed launcher configurations with exact copies of the user's `Command.exe.config`. Do not overwrite a game's configuration with a minimal build-time file. The process starts through `CommandBrowser.exe`, so its full configuration is required even though it loads `CommandMetal.exe` afterward.
 
-To intentionally update dependencies, edit `Directory.Build.props`, run `dotnet restore CommandMetal.sln --force-evaluate`, review both project lock files, and rerun tests/build. Ordinary builds must not regenerate the lock files silently.
+To intentionally update dependencies, edit the relevant `PackageReference` in `Directory.Build.props` or the browser project, run `dotnet restore CommandMetal.sln --force-evaluate`, review the project lock files, and rerun tests/build. Ordinary builds must not regenerate the lock files silently.
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` runs on pushes, pull requests, and manual dispatch. It uses a Windows runner, installs .NET 10 and Python, runs host-side installer/package tests, builds both executables, runs `CommandMetal.exe --version` without the game installed, and uploads the ZIP as `CommandMetal-win-x64` with 30-day retention.
+`.github/workflows/build.yml` runs on pushes, pull requests, and manual dispatch. It uses a Windows runner, installs .NET 10 and Python, runs host-side installer/package tests, builds the three executables, runs both launcher `--version` checks without the game installed, and verifies the bootstrap's embedded dependency by applying and removing a prefix on a self-test method. It uploads the ZIP as `CommandMetal-win-x64` with 30-day retention.
 
 Official actions are pinned to commit SHAs. The workflow requests read-only repository permission, does not require secrets, and does not create releases or publish to a package registry. GitHub's [artifact documentation](https://docs.github.com/en/actions/tutorials/store-and-share-data) explains how to download an artifact from a workflow run.
 

@@ -23,6 +23,7 @@ candidates/
 backups/
 Command.exe.config
 CommandMetal.exe.config
+CommandBrowser.exe.config
 .DS_Store
 __pycache__/
 *.pyc
