@@ -55,6 +55,7 @@ internal static class BrowserBootstrap
             Log("Starting browser compatibility bootstrap before CommandMetal.exe.");
             // Keep Harmony-dependent methods out of this entry-point's JIT resolution.
             InstallGuard(directory);
+            InstallUiFixes(directory);
             Assembly renderer = Assembly.LoadFrom(Path.Combine(directory, "CommandMetal.exe"));
             MethodInfo entry = renderer.EntryPoint;
             object result = entry.Invoke(null, entry.GetParameters().Length == 0 ? null : new object[] { args });
@@ -70,6 +71,19 @@ internal static class BrowserBootstrap
             catch { }
             return 1;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void InstallUiFixes(string directory)
+    {
+        if (Environment.GetEnvironmentVariable("CMO_FOCUS_COMPAT") == "1")
+            FocusGuard.Install(directory, Log);
+        if (Environment.GetEnvironmentVariable("CMO_PANEL_LAYOUT") != "1")
+        {
+            Log("Experimental sidebar layout requires CMO_PANEL_LAYOUT=1; disabled by default.");
+            return;
+        }
+        PanelLayout.Install(directory, Log);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

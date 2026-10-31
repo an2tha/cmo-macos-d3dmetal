@@ -35,6 +35,10 @@ internal static class BootstrapSelfTest
             if (Target() != 1)
                 throw new InvalidOperationException("The original method was not restored.");
             Console.WriteLine("PASS: embedded Harmony resolved, prefix applied, original restored.");
+            PanelLayout.SelfTest();
+            Console.WriteLine("PASS: sidebar bounds, viewport synchronization, delayed camera, busy renderer, and rollback self-test.");
+            FocusGuard.SelfTest();
+            Console.WriteLine("PASS: focus guard suppresses only the observed caller and preserves legitimate activation.");
             return 0;
         }
         catch (Exception error)

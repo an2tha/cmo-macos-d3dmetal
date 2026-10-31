@@ -6,6 +6,16 @@ Start through `CommandBrowser.exe` or the supplied launch script. The renderer-o
 
 Browser logs record guard installation, SDK identity mismatches, and skipped calls. Unknown SDK hashes are left unchanged. `CMO_WEBVIEW_COMPAT=0` disables the guard for a controlled comparison. Neither the SDK nor the WebView2 runtime is replaced by this fix.
 
+## Unit status panel and map click offset
+
+The controlled fix requires narrowing the native map and invoking the game's normal renderer resize. Changing only map bounds leaves the drawing and picking dimensions stale. The launch script enables `CMO_PANEL_LAYOUT=1` automatically to coordinate these steps and check the camera after the next frame. Starting `CommandMetal.exe` directly bypasses this fix. The automatic integration passed a controlled in-game panel, input and transition check.
+
+If a test leaves clicks offset, save and close the game, then relaunch with `CMO_PANEL_LAYOUT=0`. Unknown game hashes and unsupported layouts are logged and left unchanged. Do not combine the package with older private sidebar probes.
+
+## Window freezes during activation
+
+One captured freeze blocked inside `SetForegroundWindow` from a MainForm message-handler activation call. `CMO_FOCUS_COMPAT=1` enables the narrow experimental guard for that exact caller. Other activation paths retain normal behavior. Those focus transitions passed the controlled test, while longer sessions remain unvalidated. A guard counter is evidence that the path was matched, not proof of long-term stability.
+
 ## Synchronization mismatch at launch
 
 A Wine server already running with MSync enabled cannot be reused for this MSync-off launch. Save and close every application in that bottle, use CrossOver's **Quit All Applications**, verify MSync is off, and launch again. The script deliberately does not terminate the server automatically.
@@ -31,6 +41,8 @@ Additional diagnostics are opt-in:
 | `CMO_D2D_PROFILE=1` | Selected Direct2D call counts and timing; changes measurement overhead |
 | `CMO_D2D_BATCHING=0` | Disable drawing batching to compare the ordinary state-emulation path |
 | `CMO_LOG_DIR` | Directory for CommandMetal logs |
+| `CMO_PANEL_LAYOUT=0` | Disable the sidebar and renderer/camera synchronization enabled by the launch script |
+| `CMO_FOCUS_COMPAT=1` | Opt into the captured MainForm activation caller guard |
 | `CMO_WEBVIEW_COMPAT=0` | Disable the optional Settings8 compatibility guard in CommandBrowser |
 
 With a CLI launch, native Wine errors also appear in the terminal. For a controlled capture, redirect stdout/stderr to a file. CrossOver's `--cx-log` option can add verbose trace channels; the launcher avoids it so ordinary testing does not accidentally include heavy exception-unwind tracing.

@@ -2,7 +2,7 @@
 
 ## Startup
 
-The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs the targeted WebView2 capability guard, and invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
+The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs the targeted WebView2 capability guard and any explicitly enabled game UI hooks, then invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
 
 `CommandMetal.exe` sets its working directory to its installation directory, optionally starts diagnostics, creates a hidden native seed window and a BGRA Direct3D 11 swap chain, and installs the adapters before invoking the original managed `Command.exe` entry point. A native `STATIC` window avoids initializing WinForms before the game's own protected startup code.
 
@@ -22,6 +22,10 @@ The adapters call the Windows COM ABI directly. `NativeGraphics.cs` contains a s
 | `D2DPerf.cs` | Opt-in timing of selected Direct2D drawing calls |
 | `GraphicsProbe.cs` | Manual pixel readback and state-restoration integration test |
 | `BrowserBootstrap.cs` | Embedded dependency resolution and browser guard before renderer startup |
+| `ReviewedGame.cs` | File hash guard for build-specific UI behavior |
+| `PanelLayout.cs` | Deferred selected-sidebar identification, map reservation, viewport coordination and rollback |
+| `RendererViewport.cs` | Verified game resize method and raw renderer/camera identity and dimension checks |
+| `FocusGuard.cs` | Exact activation caller guard and deferred diagnostic counters |
 | `WebViewGuard.cs` | Narrow capability check for an optional WebView2 Settings8 setter |
 
 ## WebView2 capability guard
@@ -33,6 +37,30 @@ The bootstrap validates the SDK file SHA-256, the actual loaded module MVID, and
 The validated Core.dll SHA-256 is `4045f33c0cc195950aa92908bab5f904f41f04f54cb2219c11ddddf0268e1a4d`, with MVID `293b524b-c2df-42fc-b7b5-f77c1008e0b7`. Unknown SDK builds are logged and left unchanged. No Microsoft DLL is rewritten. Harmony 2.3.3 is embedded in the bootstrap; its [MIT license](../third-party/Harmony-LICENSE.txt) is included in the package.
 
 Microsoft lists Settings8 and this property in the [Runtime 112 release notes](https://learn.microsoft.com/en-us/microsoft-edge/webview2/release-notes/sdk/1-0-1722-45). The workaround leaves existing reputation-checking behavior in place when the control API is unavailable.
+
+## Selected-unit sidebar and viewport
+
+The selected WPF status body measured and loaded normally, while full-width native map windows covered it. Restricting map bounds exposed the panel but left the renderer and picking camera at their previous width, causing a map-only click offset. In the successful controlled test, both map controls were narrowed and `DXRenderer.Main.OnResize` was called with the actual `WorldWindow` on its UI thread. Renderer width changed from3440 to3164; the camera matched on the next frame. The user confirmed the full panel, clicks, selection, pan/zoom and context menus worked.
+
+`ReviewedGame` checks Command.exe SHA-256 `53fc37bb0b634adbe46f4ddf3a87c99847d273cc6f1d980ba9796da6389d25fc`. `PanelLayout` waits for the actual `Command.MainForm.OnShown`, then identifies the exact selected host, WPF child, map and parent through reviewed fields. The hover host is excluded. No controls are constructed before the game's protected startup.
+
+`RendererViewport` resolves the upper-level `OnResize(Control)` method at token `0x0600ac9a`. Initial attachment requires matching map/renderer/camera dimensions, reviewed zero margins, compatible local or screen origin, and an idle initialized renderer. It retains exact MainForm map-field, renderer, DrawArgs and camera identities. Field reads do not invoke protected getters or inspect graphics COM objects.
+
+A `Control.SetBoundsCore` prefix enforces widths only on the two exact map objects. Coalesced UI events follow the sidebar and parent geometry. Width changes call the game's normal resize routine; next-frame camera validation prevents repeated buffer resizing while the camera catches up. A busy renderer postpones bounds changes. No mouse events or coordinate conversion APIs are changed.
+
+Rollback disables enforcement first, restores original-object bounds, then restores the viewport through the same routine. It waits until an in-progress resize returns and retains pending recovery after failures. Transient failures use slower retries; replaced targets are never resized. Once geometry is stable, maintenance timers stop. The inactive framework prefix remains rooted until process exit.
+
+The launch script supplies `CMO_PANEL_LAYOUT=1` by default on every run. Set it to `0` to disable sidebar synchronization. Direct launches of `CommandBrowser.exe` still require the variable explicitly. The controlled resize and subsequent automatic integration passed user-confirmed selection, resize/hide/show, scrolling and map-input checks. Static metadata alone cannot establish the protected resize routine's behavior.
+
+## Window-activation guard
+
+During a later freeze, passive CLR inspection showed the UI thread in `MainForm.WndProc -> forwarding bridge -> Form.Activate -> SetForegroundWindow`. A separate native sample showed a windowing mutex wait and idle named graphics workers. This identifies that occurrence's blocked call; it does not establish the cause of every earlier freeze or prove that a resize caused it.
+
+With `CMO_FOCUS_COMPAT=1`, `FocusGuard` validates the same game hash/path and resolves the exact MainForm window procedure (`0x060014c0`) and observed forwarding bridge (`0x0601373e`). A prefix on framework `Form.Activate` suppresses only calls whose nearest substantive game caller is that procedure. Other forms, direct activation callers and nested dialog helpers retain the original behavior. It does not replace the protected game window procedure.
+
+The prefix inspects at most64 captured frames, while stack capture itself can be longer. It contains inspection failures and defaults to the original call. It performs no focus/handle queries, UI dispatch or file logging in the activation path. A background reporter starts only after the real MainForm is shown, emits changed counters/errors, and stops on disposal.
+
+The guard matched several calls during a subsequent combined test. The user confirmed normal app switching, unit/database dialog closure and keyboard focus, without another freeze during the check. Extended play and other environments remain unvalidated. It is disabled by default in the public launcher.
 
 ## Surface adapter
 

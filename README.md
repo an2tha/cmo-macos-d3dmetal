@@ -4,9 +4,9 @@ An experimental D3DMetal compatibility launcher for **Command: Modern Operations
 
 CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by Wine's Direct2D renderer. It runs the original `Command.exe` in the same process, with process-local graphics adapters installed first. The game executable and its libraries are not patched on disk.
 
-The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. Use the supplied launch script to enable both fixes.
+The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. The launch script enables selected-unit sidebar and map viewport synchronization by default. A separate experimental option can contain a captured window-activation wait.
 
-**Status:** the original prototype renders a usable map. Some lag and sidebar clipping remain. Turning MSync off has produced an initial user report of crash-free play, but intermittent freezes are still under investigation. This standalone rewrite builds without game files and needs its own in-game validation before it can replace the prototype with confidence.
+**Status:** the original prototype renders a playable map, with remaining lag. A controlled panel test restored the complete sidebar and correct map clicks by invoking the game's normal renderer resize. A later freeze was captured in a window-activation call. The combined automatic UI implementation then passed a user-confirmed check of selection, resizing, sidebar visibility, app switching, dialogs and database details without another freeze. Longer stability remains under investigation. This repository's standalone renderer rewrite also retains its separate graphics regression-testing requirement.
 
 ## Requirements
 
@@ -67,7 +67,19 @@ CROSSOVER_APP='/Applications/CrossOver.app' \
 zsh scripts/Play-D3DMetal.command
 ```
 
-The normal CrossOver **Command** icon starts the original executable without these adapters. To use both fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
+The normal CrossOver **Command** icon starts the original executable without these adapters. To use these fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
+
+## Experimental sidebar and focus tests
+
+These options are restricted to the reviewed Command build. The launch script enables the sidebar resize fix by default; the separate focus guard remains opt-in. The combined bootstrap passed a controlled in-game check of automatic startup, selection, panel scrolling, pan/zoom, context menus, resizing, sidebar hide/show, app switching, unit/database dialogs and keyboard focus. Longer sessions and other environments remain unvalidated.
+
+After saving and closing the game, start a separate test session with:
+
+```sh
+CMO_PANEL_LAYOUT=1 CMO_FOCUS_COMPAT=1 zsh scripts/Play-D3DMetal.command
+```
+
+For an extracted package, use `Play-D3DMetal.command` without the `scripts/` prefix. `CMO_PANEL_LAYOUT=1` reserves sidebar space and synchronizes the renderer and picking camera. The launch script supplies this setting automatically on every run. `CMO_FOCUS_COMPAT=1` guards the exact message-handler activation path captured during one freeze. Unknown game hashes retain normal behavior. Set either option to `0` on the next launch to disable it. Starting `CommandBrowser.exe` directly still requires these environment variables; starting `CommandMetal.exe` directly bypasses the sidebar and browser fixes.
 
 ## Remove or roll back
 
@@ -81,4 +93,4 @@ Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe
 - [Known issues and compatibility](docs/COMPATIBILITY.md)
 - [Contributing and test expectations](CONTRIBUTING.md)
 
-This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental sidebar or bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.
+This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.

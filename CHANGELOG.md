@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add opt-in selected-unit sidebar layout for the reviewed game build.
+- Synchronize map bounds through the game's normal renderer resize routine, preserving map click coordinates.
+- Wait for an idle renderer and next-frame camera updates; restore bounds and viewport together on failure.
+- Defer rollback during a resize, reject replaced map targets, and retry transient restoration failures with backoff.
+- Add an opt-in guard for the captured MainForm message-handler activation wait, preserving other activation callers.
+- Extend Windows framework self-tests with viewport failures, camera lag, busy rendering, reentrant rollback and focus caller boundaries.
+
+The controlled panel/renderer test passed, then a later whole-window freeze was captured in `Form.Activate` / `SetForegroundWindow`. The guard matched that path during a subsequent combined automatic test. The user confirmed correct panel/input behavior through resizing, sidebar visibility changes, app switching, unit/database dialogs and keyboard focus, without another freeze during the check. Longer stability remains unproven; both public UI flags default to off. The playable prototype and standalone renderer rewrite retain separate validation boundaries.
+
 ## 0.1.1
 
 - Fix blank database-entry details on the tested WebView2 Runtime 109 by guarding the unsupported optional Settings8 reputation-setting call.
