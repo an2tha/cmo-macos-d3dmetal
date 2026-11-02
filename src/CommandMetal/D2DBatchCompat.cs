@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 // Keep the emulated D3D11 state attached for one complete Direct2D drawing batch.
 public static class D2DBatchCompat
 {
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate void BeginFn(IntPtr target);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int EndFn(IntPtr target, IntPtr tag1, IntPtr tag2);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] internal delegate void BeginFn(IntPtr target);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] internal delegate int EndFn(IntPtr target, IntPtr tag1, IntPtr tag2);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int CreateFn(IntPtr factory, IntPtr surface, ref Properties properties, out IntPtr target);
     [StructLayout(LayoutKind.Sequential)]
     struct Properties

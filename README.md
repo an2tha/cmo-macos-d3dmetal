@@ -6,7 +6,22 @@ CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by 
 
 The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. The launch script enables selected-unit sidebar and map viewport synchronization by default. A separate experimental option can contain a captured window-activation wait.
 
-**Status:** the original prototype renders a playable map, with remaining lag. A controlled panel test restored the complete sidebar and correct map clicks by invoking the game's normal renderer resize. A later freeze was captured in a window-activation call. The combined automatic UI implementation then passed a user-confirmed check of selection, resizing, sidebar visibility, app switching, dialogs and database details without another freeze. Longer stability remains under investigation. This repository's standalone renderer rewrite also retains its separate graphics regression-testing requirement.
+**Status:** the original prototype renders a playable map, with remaining lag. The sidebar resize, map input and database details passed in-game checks. The optional focus and native barrier guards address captured failure paths, but a later whole-window freeze remains unresolved. The standalone renderer passes the isolated drawing benchmarks below; full in-game regression testing of that rewrite is still required.
+
+## Benchmarks
+
+Measured on **2 November 2026** with an Apple M4 Max (16 CPU cores, 40 GPU cores, 48 GB RAM), AC power, macOS 27.2 (26B5101f), CrossOver 26.3 and D3DMetal. MSync and ESync were off. These are **synthetic drawing-loop measurements, not game FPS**.
+
+| Standalone adapter configuration | Median iterations/second | Range across 5 runs |
+| --- | ---: | ---: |
+| D3DMetal, batching off (`CMO_D2D_BATCHING=0`) | 434 | 407 to 436 |
+| D3DMetal, batching on (`CMO_D2D_BATCHING=1`) | 1,005 | 989 to 1,018 |
+
+Batching delivered **2.32 times the throughput in this workload**. Both rows use the compatibility adapters; the first row is not an unmodified-game or Wine renderer baseline. All ten runs passed pixel-readback and graphics-state checks. [Raw measurements and environment](docs/benchmarks/2026-11-02-m4-max.json).
+
+Each run uses a 600×400 target, 100 warmup iterations and 2,000 timed iterations with 64 overlapping rectangles each. The loop includes clearing, brush/buffer setup, drawing and topology checks. Timing includes final blocking GPU readback and pixel validation; startup and the final display presentation are excluded. Settings alternate across five runs each. Diagnostic tracing and forced GC are disabled. Background applications were not controlled.
+
+There is no presentation inside the timed loop, so iterations/second is not displayed FPS and is not capped by the launcher's requested 60 FPS limit. Map movement, text, terrain, simulation work, Wine-versus-D3DMetal speed and long-session stability are not measured here. See [the reproducible command](docs/BUILDING.md#reproduce-the-drawing-benchmark).
 
 ## Requirements
 
@@ -18,7 +33,7 @@ The prototype was exercised with Command v1.10, build 1900.20, CrossOver 26.3, D
 
 ## Download or build
 
-After this repository is pushed to GitHub, open **Actions > Build CommandMetal**, select a successful run, and download the `CommandMetal-win-x64` artifact. Extract the artifact, then extract the included `CommandMetal-win-x64.zip`.
+Open **Actions > Build CommandMetal**, select a successful `main` run, and download the `CommandMetal-win-x64` artifact. Extract the artifact, then extract the included `CommandMetal-win-x64.zip`.
 
 To build from source on Windows, macOS, or Linux:
 
@@ -80,6 +95,12 @@ CMO_PANEL_LAYOUT=1 CMO_FOCUS_COMPAT=1 zsh scripts/Play-D3DMetal.command
 ```
 
 For an extracted package, use `Play-D3DMetal.command` without the `scripts/` prefix. `CMO_PANEL_LAYOUT=1` reserves sidebar space and synchronizes the renderer and picking camera. The launch script supplies this setting automatically on every run. `CMO_FOCUS_COMPAT=1` guards the exact message-handler activation path captured during one freeze. Unknown game hashes retain normal behavior. Set either option to `0` on the next launch to disable it. Starting `CommandBrowser.exe` directly still requires these environment variables; starting `CommandMetal.exe` directly bypasses the sidebar and browser fixes.
+
+## Experimental long-session crash fix
+
+A captured Rosetta assertion left two threads inside Wine's process-wide memory barrier. An optional native serialization guard addresses the concurrent Mach register-state query path, following the approach in [Microsoft's Rosetta fix](https://github.com/dotnet/runtime/pull/134384). It preserves the original barrier and the map/sidebar code. A four-thread stress test and a combined graphics/GC probe passed, and the user confirmed normal map/input/sidebar behavior. A later freeze with a Wine critical-section timeout remains unresolved; this is not a complete crash fix.
+
+After saving and closing the game, use `CMO_SERIALIZE_BARRIERS=1 zsh scripts/Play-D3DMetal.command` to test it. This option requires the exact reviewed CrossOver native module and stops startup if the profile differs. It is off by default. See [diagnostics and limitations](docs/TROUBLESHOOTING.md#rosetta-thread-context-assertion-during-long-sessions).
 
 ## Remove or roll back
 

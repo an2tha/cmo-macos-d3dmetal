@@ -4,6 +4,7 @@
     <AssemblyName>CommandBrowser</AssemblyName>
     <StartupObject>BrowserBootstrap</StartupObject>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />

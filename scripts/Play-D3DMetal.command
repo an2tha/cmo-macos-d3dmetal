@@ -9,13 +9,14 @@ wine_bin="$crossover_app/Contents/SharedSupport/CrossOver/bin/wine"
 batching="${CMO_D2D_BATCHING:-1}"
 panel_layout="${CMO_PANEL_LAYOUT:-1}"
 focus_compat="${CMO_FOCUS_COMPAT:-0}"
+serialize_barriers="${CMO_SERIALIZE_BARRIERS:-0}"
 if [[ "$batching" != 0 && "$batching" != 1 ]]; then
     print -u2 'CMO_D2D_BATCHING must be 0 or 1.'
     exit 1
 fi
-for setting in "$panel_layout" "$focus_compat"; do
+for setting in "$panel_layout" "$focus_compat" "$serialize_barriers"; do
     if [[ "$setting" != 0 && "$setting" != 1 ]]; then
-        print -u2 'CMO_PANEL_LAYOUT and CMO_FOCUS_COMPAT must be 0 or 1.'
+        print -u2 'CMO_PANEL_LAYOUT, CMO_FOCUS_COMPAT and CMO_SERIALIZE_BARRIERS must be 0 or 1.'
         exit 1
     fi
 done
@@ -25,7 +26,7 @@ if [[ ! -x "$wine_bin" || ! -f "$game_dir/CommandMetal.exe" || ! -f "$game_dir/C
     exit 1
 fi
 game_dir="${game_dir:A}"
-if /bin/ps -ww -axo comm= | /usr/bin/grep -E '(^|[/\\])(Command|CommandMetal|CommandBrowser)\.exe$' >/dev/null; then
+if /bin/ps -ww -axo comm= | /usr/bin/grep -E '(^|[/\\])(Command|CommandMetal|CommandBrowser|CommandBrowserBarrier|CommandUiAuto[0-9]+)\.exe$' >/dev/null; then
     print -u2 'Command is already running. Save and close it before starting another session.'
     exit 1
 fi
@@ -42,8 +43,15 @@ done < <(/bin/ps -ww -axo pid=,comm=)
 
 # Z: is Wine's Unix filesystem mapping. This avoids assuming a C: game path.
 windows_game="Z:${game_dir//\//\\}"
+# Keep each session's native diagnostics after the next launch. Forward output
+# to the terminal or app as well, retaining Wine's original exit status.
+native_log_dir="${CMO_NATIVE_LOG_DIR:-$HOME/Library/Logs/CommandMetal}"
+/bin/mkdir -p "$native_log_dir"
+native_log=$(/usr/bin/mktemp "$native_log_dir/wine-$(/bin/date -u +%Y%m%dT%H%M%SZ).XXXXXX")
+exec > >(/usr/bin/tee -a "$native_log") 2>&1
+print -r -- "Native session log: $native_log"
 print 'Starting Command with D3DMetal and MSync off.'
 print 'If Wine reports a synchronization mismatch, save and quit all Steam-bottle applications in CrossOver, then retry.'
 exec "$wine_bin" --bottle "$bottle" --wait --debugmsg=-all,err+all \
-    --env "CX_GRAPHICS_BACKEND=d3dmetal D3DM_MTL4=0 D3DM_MAX_FPS=60 WINEMSYNC=0 WINEESYNC=0 CMO_D2D_BATCHING=$batching CMO_PANEL_LAYOUT=$panel_layout CMO_FOCUS_COMPAT=$focus_compat" \
+    --env "CX_GRAPHICS_BACKEND=d3dmetal D3DM_MTL4=0 D3DM_MAX_FPS=60 WINEMSYNC=0 WINEESYNC=0 CMO_D2D_BATCHING=$batching CMO_PANEL_LAYOUT=$panel_layout CMO_FOCUS_COMPAT=$focus_compat CMO_SERIALIZE_BARRIERS=$serialize_barriers" \
     --workdir "$windows_game" "$windows_game\\CommandBrowser.exe"

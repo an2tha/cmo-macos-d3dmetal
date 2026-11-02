@@ -4,7 +4,7 @@
 
 The working prototype was tested with Command v1.10 build 1900.20, CrossOver 26.3, Apple D3DMetal 4.0b2, macOS 27.2, and an Apple M4 Max. Its map rendered and was playable, with remaining lag. Those observations describe the prototype, not a completed validation of the standalone rewrite in this repository.
 
-The original state adapter passed isolated pixel/readback and state-restoration probes, including repeated drawing, explicit Flush, and allocation stress. The cleaned `GraphicsProbe.exe` must be rerun on the intended backend after any interop change. Compilation and CI cannot establish D3DMetal behavior.
+The original state adapter passed isolated pixel/readback and state-restoration probes, including repeated drawing, explicit Flush, and allocation stress. On 2 November 2026, the standalone source also passed all ten D3DMetal benchmark runs with readback and topology checks. Those synthetic results do not establish full-game behavior. Rerun `GraphicsProbe.exe` on the intended backend after interop changes. Compilation and CI cannot establish D3DMetal behavior.
 
 ## Current issues
 

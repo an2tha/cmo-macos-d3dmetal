@@ -56,6 +56,12 @@ Official actions are pinned to commit SHAs. The workflow requests read-only repo
 
 CI verifies buildability and packaging. The Windows runner does not provide the user's CrossOver/D3DMetal environment, so a green build does not certify map rendering, performance, or freeze prevention. The workflow itself can only be exercised after the repository is pushed to GitHub.
 
+## Manual Rosetta barrier validation
+
+After saving and closing every game session, run the built browser bootstrap in the reviewed CrossOver bottle with `--barrier-self-test`. It installs the native compatibility path in that test process and issues 40,000 original barrier calls from four threads. It checks native call counts, maximum concurrent original calls, and lock failures. No game assembly or graphics device is loaded. The native-module profile must match; this test is not available on the Windows CI runner.
+
+The worker join has a timeout, but a low-level runtime deadlock can also stop the managed timeout path. It is not an external process watchdog. Keep this probe separate from any session with unsaved progress.
+
 ## Manual graphics validation
 
 Save and close the game first. Run the built `GraphicsProbe.exe` in the intended CrossOver bottle with the same D3DMetal and synchronization environment as the launcher. A basic run draws a red rectangle over blue, checks two GPU readback pixels, verifies primitive-topology restoration after EndDraw, and presents.
@@ -69,3 +75,19 @@ For repeated drawing, explicit Flush checks, and concurrent managed allocations,
 The probe returns a nonzero status on validation failure. Wine's underlying `E_NOTIMPL` Flush result is tolerated only while the topology restoration check still passes. The probe has a 45-second drawing-loop limit, not a guaranteed process timeout if a native call hangs. Never launch it into an active game session.
 
 After probe success, use a separate saved-game session to check scenario load, map pan/zoom, selection, dialogs, save/load, and longer play. Record backend and synchronization settings with the result.
+
+## Reproduce the drawing benchmark
+
+Save and close all game sessions first. From an extracted package directory on macOS, run:
+
+```sh
+/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin/wine \
+  --bottle Steam --wait --debugmsg=-all,err+all \
+  --env 'CX_GRAPHICS_BACKEND=d3dmetal D3DM_MTL4=0 D3DM_MAX_FPS=60 WINEMSYNC=0 WINEESYNC=0 CMO_D2D_BATCHING=1 CMO_DIAGNOSTICS=0 CMO_TRACE_EXCEPTIONS=0 CMO_D2D_PROFILE=0' \
+  "Z:$PWD/GraphicsProbe.exe" \
+  --benchmark --warmup=100 --frames=2000 --draws=64
+```
+
+For a source build, substitute `Z:$PWD/src/GraphicsProbe/bin/Release/net48/GraphicsProbe.exe`. Adjust CrossOver and bottle paths if needed. Change `CMO_D2D_BATCHING=1` to `0` for the ordinary state-emulation path. Run each setting five times in alternating order and report the median and full range from the `BENCHMARK` JSON line. Each process must finish successfully, print `PASS`, and retain correct pixels and topology. Do not combine this timing with `--gc-stress`, `--flush`, profiling or exception tracing.
+
+Warmup and device startup are outside timing. A blocking staging-texture readback completes warmup before timing and measured GPU work before the timer stops. Each iteration includes temporary buffer allocation, a clear, brush creation/release, overlapping rectangle fills and topology checks. Timed readback includes its two pixel-result console writes. A single Present occurs after timing; no loop iteration presents. This is completed synthetic drawing throughput, not displayed FPS, isolated GPU time or a whole-game benchmark. The 45-second loop check is not an external process watchdog.

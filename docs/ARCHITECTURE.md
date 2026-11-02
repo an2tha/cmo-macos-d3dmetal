@@ -52,6 +52,14 @@ Rollback disables enforcement first, restores original-object bounds, then resto
 
 The launch script supplies `CMO_PANEL_LAYOUT=1` by default on every run. Set it to `0` to disable sidebar synchronization. Direct launches of `CommandBrowser.exe` still require the variable explicitly. The controlled resize and subsequent automatic integration passed user-confirmed selection, resize/hide/show, scrolling and map-input checks. Static metadata alone cannot establish the protected resize routine's behavior.
 
+## Native process-wide barrier serialization
+
+`BarrierCompat.cs` is an optional, exact-version backport of the native serialization used in [.NET's Rosetta fix](https://github.com/dotnet/runtime/pull/134384). It verifies the installed x64 native Wine image hash, service count, table layout and pthread import stubs. A copied service-pointer array changes only `NtFlushProcessWriteBuffers`; the original array remains allocated. Publication uses an atomic pointer exchange during startup.
+
+The generated SysV x64 function locks a native Darwin pthread mutex, calls the original Wine function, unlocks, and returns its original status. It preserves RBX and stack alignment and enters no managed code. The existing Mach-based process-wide barrier remains intact. Code is written into a writable allocation, changed to executable/read-only, and retained with the mutex and copied table until process exit. There is no live uninstall. Native mutex errors terminate the process instead of falsely reporting a successful barrier.
+
+Initialization is serialized separately from native execution. Allocation failures before publication retain the original table. Failure of verification after publication aborts startup and explicitly reports that the hook is still installed. Unknown module profiles are rejected before publication. No game, CLR, or Wine file is modified on disk.
+
 ## Window-activation guard
 
 During a later freeze, passive CLR inspection showed the UI thread in `MainForm.WndProc -> forwarding bridge -> Form.Activate -> SetForegroundWindow`. A separate native sample showed a windowing mutex wait and idle named graphics workers. This identifies that occurrence's blocked call; it does not establish the cause of every earlier freeze or prove that a resize caused it.

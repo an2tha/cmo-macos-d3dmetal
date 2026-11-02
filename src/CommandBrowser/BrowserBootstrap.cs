@@ -50,9 +50,13 @@ internal static class BrowserBootstrap
         {
             if (args.Length == 1 && args[0] == "--self-test")
                 return BootstrapSelfTest.Run();
+            if (args.Length == 1 && args[0] == "--barrier-self-test")
+                return BarrierSelfTest.Run();
             string directory = AppDomain.CurrentDomain.BaseDirectory;
             Directory.SetCurrentDirectory(directory);
             Log("Starting browser compatibility bootstrap before CommandMetal.exe.");
+            if (Environment.GetEnvironmentVariable("CMO_SERIALIZE_BARRIERS") == "1")
+                BarrierCompat.Install(Log);
             // Keep Harmony-dependent methods out of this entry-point's JIT resolution.
             InstallGuard(directory);
             InstallUiFixes(directory);
