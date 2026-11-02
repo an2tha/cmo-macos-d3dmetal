@@ -1,0 +1,202 @@
+{
+  "date": "2026-11-02",
+  "probe_sha256": "4293998788ec3af47d9e332366cdacbb80ffb0e366d13c5edfcfa9d1d5ff74c9",
+  "workload": "600x400, 2000 offscreen iterations, 64 rectangles per iteration, 100 warmup iterations, GPU readback at warmup and measured end, no per-iteration Present, no forced GC, no mid-iteration Flush",
+  "host": {
+    "chip": "Apple M4 Max",
+    "cpu_cores": 16,
+    "gpu_cores": 40,
+    "memory_gb": 48,
+    "macos": "27.2 (26B5101f)",
+    "crossover": "26.3",
+    "backend": "D3DMetal",
+    "power_source": "AC Power"
+  },
+  "settings": {
+    "WINEMSYNC": 0,
+    "WINEESYNC": 0,
+    "D3DM_MTL4": 0,
+    "D3DM_MAX_FPS": 60
+  },
+  "runs": [
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": false,
+      "elapsed_ms": 4595.898,
+      "iterations_per_second": 435.171,
+      "completed_swaps": 260000,
+      "skipped_swaps": 0,
+      "repeat": 1,
+      "utc": "2026-11-02T12:50:16.042898+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": true,
+      "elapsed_ms": 1970.783,
+      "iterations_per_second": 1014.825,
+      "completed_swaps": 262000,
+      "skipped_swaps": 258000,
+      "repeat": 1,
+      "utc": "2026-11-02T12:50:25.427221+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": true,
+      "elapsed_ms": 1989.834,
+      "iterations_per_second": 1005.109,
+      "completed_swaps": 262000,
+      "skipped_swaps": 258000,
+      "repeat": 2,
+      "utc": "2026-11-02T12:50:34.854151+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": false,
+      "elapsed_ms": 4588.15,
+      "iterations_per_second": 435.906,
+      "completed_swaps": 260000,
+      "skipped_swaps": 0,
+      "repeat": 2,
+      "utc": "2026-11-02T12:50:46.971226+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": false,
+      "elapsed_ms": 4607.617,
+      "iterations_per_second": 434.064,
+      "completed_swaps": 260000,
+      "skipped_swaps": 0,
+      "repeat": 3,
+      "utc": "2026-11-02T12:50:59.049901+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": true,
+      "elapsed_ms": 1963.984,
+      "iterations_per_second": 1018.338,
+      "completed_swaps": 262000,
+      "skipped_swaps": 258000,
+      "repeat": 3,
+      "utc": "2026-11-02T12:51:08.408020+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": true,
+      "elapsed_ms": 2007.055,
+      "iterations_per_second": 996.485,
+      "completed_swaps": 262000,
+      "skipped_swaps": 258000,
+      "repeat": 4,
+      "utc": "2026-11-02T12:51:17.880345+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": false,
+      "elapsed_ms": 4912.45,
+      "iterations_per_second": 407.129,
+      "completed_swaps": 260000,
+      "skipped_swaps": 0,
+      "repeat": 4,
+      "utc": "2026-11-02T12:51:30.636986+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": false,
+      "elapsed_ms": 4770.897,
+      "iterations_per_second": 419.208,
+      "completed_swaps": 260000,
+      "skipped_swaps": 0,
+      "repeat": 5,
+      "utc": "2026-11-02T12:51:42.853483+00:00"
+    },
+    {
+      "iterations": 2000,
+      "draws_per_iteration": 64,
+      "warmup": 100,
+      "width": 600,
+      "height": 400,
+      "flush": false,
+      "batching": true,
+      "elapsed_ms": 2022.495,
+      "iterations_per_second": 988.878,
+      "completed_swaps": 262000,
+      "skipped_swaps": 258000,
+      "repeat": 5,
+      "utc": "2026-11-02T12:51:52.263246+00:00"
+    }
+  ],
+  "batching_off": {
+    "median_iterations_per_second": 434.064,
+    "min_iterations_per_second": 407.129,
+    "max_iterations_per_second": 435.906
+  },
+  "batching_on": {
+    "median_iterations_per_second": 1005.109,
+    "min_iterations_per_second": 988.878,
+    "max_iterations_per_second": 1018.338
+  },
+  "measurement": "Synthetic completed offscreen drawing-loop throughput, not game FPS or GPU-only time",
+  "diagnostic_environment": {
+    "CMO_DIAGNOSTICS": "unset (disabled)",
+    "CMO_TRACE_EXCEPTIONS": "unset (disabled)",
+    "CMO_D2D_PROFILE": "unset (disabled)"
+  },
+  "limitations": [
+    "Single machine; background applications were not controlled.",
+    "Each iteration clears, creates/releases a brush, allocates temporary buffers, sets/checks topology and draws 64 overlapping identical rectangles.",
+    "Warmup is outside timing. Final staging-copy GPU readback, pixel validation and its two console writes are inside timing. Startup, shader setup and final Present are outside timing.",
+    "There is no per-iteration Present, so D3DM_MAX_FPS is not a loop FPS limit.",
+    "Both modes use the wrapper. Batching off is not an unmodified game or Wine renderer baseline.",
+    "No apples-to-apples game FPS, simulation-speed, Wine-versus-Metal or multi-hour stability result is claimed."
+  ],
+  "source_files_sha256": {
+    "src/GraphicsProbe/GraphicsProbe.cs": "0a7eed571aaf824f65a032b55413667bb363c097bc483c705b2a743e299e82a6",
+    "src/CommandMetal/D2DBatchCompat.cs": "793df1a5f6838307889ce3b33c1de2e52c4e0ae530bf200c95286deb38afb9fc",
+    "src/CommandMetal/ContextStateCompat.cs": "533a5f7e0e2b1493b2b47e92571f9cc4caa7caed1b030d989e2dc2f535f6b5c4"
+  }
+}

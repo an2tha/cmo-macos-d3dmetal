@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -24,9 +25,7 @@ internal static class GraphicsProbe
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void UnmapFn(IntPtr c, IntPtr resource, uint sub);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void UIntSetFn(IntPtr c, uint value);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void UIntGetFn(IntPtr c, out uint value);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void BeginFn(IntPtr t);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void ClearFn(IntPtr t, IntPtr color);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int EndFn(IntPtr t, IntPtr tag1, IntPtr tag2);
     private static volatile bool StressRunning;
 
     private static T Fn<T>(IntPtr p, int slot) where T : class
@@ -114,7 +113,9 @@ internal static class GraphicsProbe
         try
         {
             Fn<UIntSetFn>(context, 24)(context, 3);
-            Fn<BeginFn>(target, 48)(target);
+            // Use the callback's actual delegate type: .NET returns the rooted
+            // managed delegate when a patched vtable pointer is round-tripped.
+            Fn<D2DBatchCompat.BeginFn>(target, 48)(target);
             Marshal.Copy(new float[] { .05f, .3f, .8f, 1 }, 0, color, 4);
             Fn<ClearFn>(target, 47)(target, color);
             Marshal.Copy(new float[] { 1, 0, 0, 1 }, 0, color, 4);
@@ -126,13 +127,13 @@ internal static class GraphicsProbe
                 fill(target, rectangle, brush);
                 if (flush && i == draws / 2)
                 {
-                    int result = Fn<EndFn>(target, 42)(target, IntPtr.Zero, IntPtr.Zero);
+                    int result = Fn<D2DBatchCompat.EndFn>(target, 42)(target, IntPtr.Zero, IntPtr.Zero);
                     if (result != unchecked((int)0x80004001))
                         Marshal.ThrowExceptionForHR(result);
                     AssertTopology(context, "Flush");
                 }
             }
-            Marshal.ThrowExceptionForHR(Fn<EndFn>(target, 49)(target, IntPtr.Zero, IntPtr.Zero));
+            Marshal.ThrowExceptionForHR(Fn<D2DBatchCompat.EndFn>(target, 49)(target, IntPtr.Zero, IntPtr.Zero));
             AssertTopology(context, "EndDraw");
         }
         finally { Release(brush); Marshal.FreeHGlobal(rectangle); Marshal.FreeHGlobal(color); }
@@ -144,14 +145,18 @@ internal static class GraphicsProbe
         Thread allocator = null;
         try
         {
-            int frames = 1, draws = 1;
-            bool flush = false;
+            int frames = 1, draws = 1, warmup = 0;
+            bool flush = false, benchmark = false;
             foreach (string arg in args)
             {
                 if (arg.StartsWith("--frames="))
                     frames = int.Parse(arg.Substring(9));
                 else if (arg.StartsWith("--draws="))
                     draws = int.Parse(arg.Substring(8));
+                else if (arg.StartsWith("--warmup="))
+                    warmup = int.Parse(arg.Substring(9));
+                else if (arg == "--benchmark")
+                    benchmark = true;
                 else if (arg == "--flush")
                     flush = true;
                 else if (arg == "--gc-stress")
@@ -159,8 +164,10 @@ internal static class GraphicsProbe
                 else
                     throw new ArgumentException("Unknown argument: " + arg);
             }
-            if (frames < 1 || frames > 100000 || draws < 1 || draws > 100000)
-                throw new ArgumentOutOfRangeException("Use 1..100000 frames and draws.");
+            if (frames < 1 || frames > 100000 || draws < 1 || draws > 100000 || warmup < 0 || warmup > 100000)
+                throw new ArgumentOutOfRangeException("Use 1..100000 frames and draws, 0..100000 warmup iterations.");
+            if (benchmark && StressRunning)
+                throw new ArgumentException("Keep the repeatable benchmark separate from --gc-stress.");
             if (StressRunning)
             {
                 allocator = new Thread(() =>
@@ -189,6 +196,17 @@ internal static class GraphicsProbe
                     Properties props = new Properties { Alpha = 1, DpiX = 96, DpiY = 96 };
                     Marshal.ThrowExceptionForHR(Fn<TargetFn>(factory, 15)(factory, surface, ref props, out target));
                     context = Context(compat.SwapChain);
+                    Stopwatch warmupTimer = Stopwatch.StartNew();
+                    for (int frame = 0; frame < warmup; frame++)
+                    {
+                        Draw(target, context, draws, flush);
+                        if (warmupTimer.ElapsedMilliseconds > 45000)
+                            throw new TimeoutException("Warmup exceeded 45 seconds.");
+                    }
+                    // Map a staging copy to finish warmup GPU work before timing.
+                    if (warmup > 0) Readback(compat.SwapChain);
+                    long swapsBefore = ContextStateCompat.SwapCompleted;
+                    long skippedBefore = ContextStateCompat.BatchSwapsSkipped;
                     Stopwatch timer = Stopwatch.StartNew();
                     for (int frame = 0; frame < frames; frame++)
                     {
@@ -197,12 +215,23 @@ internal static class GraphicsProbe
                             throw new TimeoutException("Drawing exceeded 45 seconds.");
                     }
                     Readback(compat.SwapChain);
+                    timer.Stop();
                     if (ContextStateCompat.LastError != null || D2DBatchCompat.LastError != null)
                         throw new InvalidOperationException(ContextStateCompat.LastError ?? D2DBatchCompat.LastError);
                     if (ContextStateCompat.SwappedStates < 2)
                         throw new InvalidOperationException("The state adapter was not exercised.");
                     compat.Present();
                     Console.WriteLine("PASS: " + frames + " frames, " + draws + " draws/frame; state restoration and pixels checked.");
+                    if (benchmark)
+                    {
+                        double seconds = timer.Elapsed.TotalSeconds;
+                        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                            "BENCHMARK {{\"iterations\":{0},\"draws_per_iteration\":{1},\"warmup\":{2},\"width\":600,\"height\":400,\"flush\":{3},\"batching\":{4},\"elapsed_ms\":{5:F3},\"iterations_per_second\":{6:F3},\"completed_swaps\":{7},\"skipped_swaps\":{8}}}",
+                            frames, draws, warmup, flush ? "true" : "false",
+                            Environment.GetEnvironmentVariable("CMO_D2D_BATCHING") != "0" ? "true" : "false",
+                            seconds * 1000, frames / seconds,
+                            ContextStateCompat.SwapCompleted - swapsBefore, ContextStateCompat.BatchSwapsSkipped - skippedBefore));
+                    }
                 }
                 finally { Release(context); Release(target); Release(surface); Release(factory); }
             }
