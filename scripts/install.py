@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install only CommandMetal's two files, preserving the game's configuration."""
+"""Install the renderer and browser launchers, preserving the game's configuration."""
 from __future__ import annotations
 
 import argparse
@@ -24,9 +24,9 @@ def running_games() -> list[str]:
         listing = subprocess.check_output(["tasklist", "/fo", "csv", "/nh"], text=True)
         names = [row[0] for row in csv.reader(io.StringIO(listing)) if row]
     else:
-        listing = subprocess.check_output(["ps", "-axo", "comm="], text=True)
+        listing = subprocess.check_output(["ps", "-ww", "-axo", "comm="], text=True)
         names = [line.strip().replace("\\", "/").rsplit("/", 1)[-1] for line in listing.splitlines()]
-    return [name for name in names if name.lower() in {"command.exe", "commandmetal.exe"}]
+    return [name for name in names if name.lower() in {"command.exe", "commandmetal.exe", "commandbrowser.exe"}]
 
 
 def replace_file(destination: Path, data: bytes) -> None:
@@ -56,12 +56,23 @@ def install(source: Path, game: Path) -> Path:
     binary = source.read_bytes()
     if binary[:2] != b"MZ":
         raise ValueError("The source is not a Windows executable.")
+    browser_source = source.with_name("CommandBrowser.exe")
+    if not browser_source.is_file():
+        raise ValueError("CommandBrowser.exe is missing beside CommandMetal.exe. Use the complete build package.")
+    browser_binary = browser_source.read_bytes()
+    if browser_binary[:2] != b"MZ":
+        raise ValueError("CommandBrowser.exe is not a Windows executable.")
     if running_games():
         raise RuntimeError("Save and close Command before installing. No process was stopped.")
 
     backup = game / "CommandMetal-backups" / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8])
     backup.mkdir(parents=True)
-    files = {"CommandMetal.exe": binary, "CommandMetal.exe.config": configuration}
+    files = {
+        "CommandMetal.exe": binary,
+        "CommandMetal.exe.config": configuration,
+        "CommandBrowser.exe": browser_binary,
+        "CommandBrowser.exe.config": configuration,
+    }
     previous = {}
     for name in files:
         destination = game / name
@@ -111,7 +122,7 @@ def main() -> int:
         backup = install(source, args.game_dir)
     except (OSError, ValueError, RuntimeError, ET.ParseError) as error:
         parser.exit(1, str(error) + "\n")
-    print("Installed CommandMetal.exe and a copy of the game's configuration.")
+    print("Installed CommandMetal.exe and CommandBrowser.exe with copies of the game's configuration.")
     print("Previous launcher backup: " + str(backup))
     return 0
 

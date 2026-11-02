@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore locked dependencies, build both executables, and create a source-free runtime package."""
+"""Restore locked dependencies, build the launchers and probe, and create a runtime package."""
 from __future__ import annotations
 
 import argparse
@@ -18,13 +18,14 @@ def package() -> Path:
     if output.exists():
         shutil.rmtree(output)
     output.mkdir(parents=True)
-    for project in ("CommandMetal", "GraphicsProbe"):
+    for project in ("CommandMetal", "CommandBrowser", "GraphicsProbe"):
         built = ROOT / "src" / project / "bin/Release/net48"
         for suffix in (".exe", ".exe.config"):
             shutil.copy2(built / (project + suffix), output / (project + suffix))
     for name in ("README.md", "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md"):
         shutil.copy2(ROOT / name, output / name)
     shutil.copytree(ROOT / "docs", output / "docs")
+    shutil.copytree(ROOT / "third-party", output / "third-party")
     (output / "scripts").mkdir()
     shutil.copy2(ROOT / "scripts/install.py", output / "scripts/install.py")
     shutil.copy2(ROOT / "scripts/Play-D3DMetal.command", output / "Play-D3DMetal.command")

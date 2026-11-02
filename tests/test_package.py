@@ -16,7 +16,7 @@ class PackagingTests(unittest.TestCase):
     def test_only_explicit_runtime_inputs_are_packaged_with_hashes_and_unix_launcher_permissions(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for project in ("CommandMetal", "GraphicsProbe"):
+            for project in ("CommandMetal", "CommandBrowser", "GraphicsProbe"):
                 folder = root / "src" / project / "bin/Release/net48"
                 folder.mkdir(parents=True)
                 (folder / (project + ".exe")).write_bytes(b"MZtest")
@@ -25,6 +25,8 @@ class PackagingTests(unittest.TestCase):
                 (folder / "Command.exe").write_bytes(b"must-not-ship")
             (root / "docs").mkdir()
             (root / "docs/BUILDING.md").write_text("Build docs\n")
+            (root / "third-party").mkdir()
+            (root / "third-party/Harmony-LICENSE.txt").write_text("License fixture\n")
             (root / "scripts").mkdir()
             (root / "scripts/install.py").write_text("# Installer fixture\n")
             (root / "scripts/Play-D3DMetal.command").write_bytes(b"#!/bin/zsh\nexit 0\n")
@@ -36,6 +38,8 @@ class PackagingTests(unittest.TestCase):
             with zipfile.ZipFile(archive) as zipped:
                 names = zipped.namelist()
                 self.assertIn("CommandMetal.exe", names)
+                self.assertIn("CommandBrowser.exe", names)
+                self.assertIn("third-party/Harmony-LICENSE.txt", names)
                 self.assertIn("scripts/install.py", names)
                 self.assertIn("CONTRIBUTING.md", names)
                 self.assertNotIn("DirectN.dll", names)

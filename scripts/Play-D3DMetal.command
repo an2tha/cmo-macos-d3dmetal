@@ -12,11 +12,11 @@ if [[ "$batching" != 0 && "$batching" != 1 ]]; then
     exit 1
 fi
 
-if [[ ! -x "$wine_bin" || ! -f "$game_dir/CommandMetal.exe" || ! -f "$game_dir/CommandMetal.exe.config" ]]; then
+if [[ ! -x "$wine_bin" || ! -f "$game_dir/CommandMetal.exe" || ! -f "$game_dir/CommandBrowser.exe" || ! -f "$game_dir/CommandBrowser.exe.config" ]]; then
     print -u2 'CrossOver or the installed CommandMetal files could not be found. See README.md for path overrides.'
     exit 1
 fi
-if /bin/ps -axo comm= | /usr/bin/grep -E '(^|[/\\])(Command|CommandMetal)\.exe$' >/dev/null; then
+if /bin/ps -ww -axo comm= | /usr/bin/grep -E '(^|[/\\])(Command|CommandMetal|CommandBrowser)\.exe$' >/dev/null; then
     print -u2 'Command is already running. Save and close it before starting another session.'
     exit 1
 fi
@@ -28,4 +28,4 @@ print 'Starting Command with D3DMetal and MSync off.'
 print 'If Wine reports a synchronization mismatch, save and quit all Steam-bottle applications in CrossOver, then retry.'
 exec "$wine_bin" --bottle "$bottle" --wait --debugmsg=-all,err+all \
     --env "CX_GRAPHICS_BACKEND=d3dmetal D3DM_MTL4=0 D3DM_MAX_FPS=60 WINEMSYNC=0 WINEESYNC=0 CMO_D2D_BATCHING=$batching" \
-    --workdir "$windows_game" "$windows_game\\CommandMetal.exe"
+    --workdir "$windows_game" "$windows_game\\CommandBrowser.exe"

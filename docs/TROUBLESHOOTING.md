@@ -1,5 +1,11 @@
 # Diagnostics and troubleshooting
 
+## Database list appears but entry details are blank
+
+Start through `CommandBrowser.exe` or the supplied launch script. The renderer-only `CommandMetal.exe` does not install the browser guard. With the tested Runtime 109 and SDK 1.0.2151.40, the optional `IsReputationCheckingRequired` setter throws because Settings8 is unsupported. The bootstrap skips that setter only on `E_NOINTERFACE`, retaining browser defaults so pane initialization can continue.
+
+Browser logs record guard installation, SDK identity mismatches, and skipped calls. Unknown SDK hashes are left unchanged. `CMO_WEBVIEW_COMPAT=0` disables the guard for a controlled comparison. Neither the SDK nor the WebView2 runtime is replaced by this fix.
+
 ## Synchronization mismatch at launch
 
 A Wine server already running with MSync enabled cannot be reused for this MSync-off launch. Save and close every application in that bottle, use CrossOver's **Quit All Applications**, verify MSync is off, and launch again. The script deliberately does not terminate the server automatically.
@@ -25,6 +31,7 @@ Additional diagnostics are opt-in:
 | `CMO_D2D_PROFILE=1` | Selected Direct2D call counts and timing; changes measurement overhead |
 | `CMO_D2D_BATCHING=0` | Disable drawing batching to compare the ordinary state-emulation path |
 | `CMO_LOG_DIR` | Directory for CommandMetal logs |
+| `CMO_WEBVIEW_COMPAT=0` | Disable the optional Settings8 compatibility guard in CommandBrowser |
 
 With a CLI launch, native Wine errors also appear in the terminal. For a controlled capture, redirect stdout/stderr to a file. CrossOver's `--cx-log` option can add verbose trace channels; the launcher avoids it so ordinary testing does not accidentally include heavy exception-unwind tracing.
 

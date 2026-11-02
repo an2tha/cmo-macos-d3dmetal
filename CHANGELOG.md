@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1
+
+- Fix blank database-entry details on the tested WebView2 Runtime 109 by guarding the unsupported optional Settings8 reputation-setting call.
+- Add a separate `CommandBrowser.exe` bootstrap so the guard runs before the existing renderer launcher.
+- Embed Harmony 2.3.3 and include its license, without distributing Microsoft or game binaries.
+- Preserve browser defaults on the missing-interface path and forward supported interfaces and other failures.
+- Install and back up both launcher/configuration pairs, and test rollback after a late replacement failure.
+- Default the launch script to the browser bootstrap and retain MSync-off settings.
+
+The isolated API/HTML tests passed, and the user confirmed database details render in the game with the unchanged playable renderer. The standalone renderer rewrite retains its separate regression-testing limitation.
+
 ## 0.1.0, standalone source package
 
 - Package the surface, context-state, and Direct2D batching adapters as an independent x64 .NET Framework 4.8 build.

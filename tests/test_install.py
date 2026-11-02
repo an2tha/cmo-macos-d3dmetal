@@ -25,6 +25,8 @@ class InstallationTests(unittest.TestCase):
         (self.game / "DirectN.dll").write_bytes(b"vendor-library")
         self.source = self.root / "CommandMetal.exe"
         self.source.write_bytes(b"MZnew-adapter")
+        self.browser = self.root / "CommandBrowser.exe"
+        self.browser.write_bytes(b"MZbrowser-bootstrap")
         self.processes = mock.patch.object(installer, "running_games", return_value=[])
         self.processes.start()
         self.addCleanup(self.processes.stop)
@@ -38,6 +40,8 @@ class InstallationTests(unittest.TestCase):
         backup = installer.install(self.source, self.game)
         self.assertEqual((self.game / "CommandMetal.exe").read_bytes(), self.source.read_bytes())
         self.assertEqual((self.game / "CommandMetal.exe.config").read_bytes(), self.configuration)
+        self.assertEqual((self.game / "CommandBrowser.exe").read_bytes(), self.browser.read_bytes())
+        self.assertEqual((self.game / "CommandBrowser.exe.config").read_bytes(), self.configuration)
         manifest = json.loads((backup / "manifest.json").read_text())
         self.assertTrue(all(not item["existed"] for item in manifest["files"].values()))
         self.assert_vendor_unchanged()
@@ -78,7 +82,17 @@ class InstallationTests(unittest.TestCase):
     def test_second_file_failure_removes_new_executable_on_fresh_install(self):
         self.check_rollback(existing=False)
 
-    def check_rollback(self, existing):
+    def test_last_file_failure_restores_existing_pair_and_removes_browser(self):
+        self.check_rollback(existing=True, fail_at=4)
+
+    def test_incomplete_package_is_refused_before_installation(self):
+        self.browser.unlink()
+        with self.assertRaisesRegex(ValueError, "complete build package"):
+            installer.install(self.source, self.game)
+        self.assertFalse((self.game / "CommandMetal.exe").exists())
+        self.assert_vendor_unchanged()
+
+    def check_rollback(self, existing, fail_at=2):
         if existing:
             (self.game / "CommandMetal.exe").write_bytes(b"old-adapter")
             (self.game / "CommandMetal.exe.config").write_bytes(b"old-config")
@@ -88,7 +102,7 @@ class InstallationTests(unittest.TestCase):
         def fail_second(destination, contents):
             nonlocal calls
             calls += 1
-            if calls == 2:
+            if calls == fail_at:
                 raise OSError("Simulated config replacement failure")
             original_replace(destination, contents)
 
@@ -101,6 +115,8 @@ class InstallationTests(unittest.TestCase):
         else:
             self.assertFalse((self.game / "CommandMetal.exe").exists())
             self.assertFalse((self.game / "CommandMetal.exe.config").exists())
+        self.assertFalse((self.game / "CommandBrowser.exe").exists())
+        self.assertFalse((self.game / "CommandBrowser.exe.config").exists())
         self.assert_vendor_unchanged()
 
     def test_backup_metadata_failure_does_not_commit(self):
@@ -128,8 +144,8 @@ class InstallationTests(unittest.TestCase):
     def test_process_detection_handles_windows_tasklist_csv(self):
         self.processes.stop()
         with mock.patch.object(installer.os, "name", "nt"), \
-             mock.patch.object(installer.subprocess, "check_output", return_value='"CommandMetal.exe","42","Console"\n"other.exe","43","Console"\n'):
-            self.assertEqual(installer.running_games(), ["CommandMetal.exe"])
+             mock.patch.object(installer.subprocess, "check_output", return_value='"CommandMetal.exe","42","Console"\n"CommandBrowser.exe","44","Console"\n"other.exe","43","Console"\n'):
+            self.assertEqual(installer.running_games(), ["CommandMetal.exe", "CommandBrowser.exe"])
         self.processes.start()
 
 

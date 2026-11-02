@@ -34,6 +34,10 @@ jobs:
         run: |
           & ./dist/CommandMetal/CommandMetal.exe --version
           if ($LASTEXITCODE -ne 0) { throw 'CommandMetal version check failed.' }
+          & ./dist/CommandMetal/CommandBrowser.exe --version
+          if ($LASTEXITCODE -ne 0) { throw 'CommandBrowser version check failed.' }
+          & ./dist/CommandMetal/CommandBrowser.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'CommandBrowser embedded dependency self-test failed.' }
           $assembly = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path './dist/CommandMetal/CommandMetal.exe'))
           if ($assembly.Name -ne 'CommandMetal') { throw 'Unexpected assembly identity.' }
       - name: Upload executable package

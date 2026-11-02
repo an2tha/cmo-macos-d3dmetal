@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>CommandBrowser</AssemblyName>
+    <StartupObject>BrowserBootstrap</StartupObject>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" GeneratePathProperty="true" PrivateAssets="all" ExcludeAssets="runtime" />
+    <EmbeddedResource Include="$(PkgLib_Harmony)/lib/net48/0Harmony.dll" LogicalName="CommandBrowser.0Harmony.dll" />
+    <None Include="../CommandMetal/App.config" Link="App.config" />
+  </ItemGroup>
+</Project>

@@ -4,6 +4,8 @@ An experimental D3DMetal compatibility launcher for **Command: Modern Operations
 
 CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by Wine's Direct2D renderer. It runs the original `Command.exe` in the same process, with process-local graphics adapters installed first. The game executable and its libraries are not patched on disk.
 
+The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. Use the supplied launch script to enable both fixes.
+
 **Status:** the original prototype renders a usable map. Some lag and sidebar clipping remain. Turning MSync off has produced an initial user report of crash-free play, but intermittent freezes are still under investigation. This standalone rewrite builds without game files and needs its own in-game validation before it can replace the prototype with confidence.
 
 ## Requirements
@@ -36,7 +38,7 @@ On Windows, use `python` instead of `python3` if needed. The package is written 
 python3 scripts/install.py --game-dir "$HOME/Library/Application Support/CrossOver/Bottles/Steam/drive_c/Games/Command - Modern Operations"
 ```
 
-The installer writes `CommandMetal.exe` and `CommandMetal.exe.config` beside `Command.exe`. It copies the complete existing `Command.exe.config`, preserving the game's binding redirects and runtime settings. Previous CommandMetal files are backed up under `CommandMetal-backups` in the game directory. It refuses installation while a Command process is running.
+The installer writes `CommandMetal.exe`, `CommandBrowser.exe`, and their `.exe.config` files beside `Command.exe`. Each configuration is an exact copy of the existing `Command.exe.config`, preserving the game's binding redirects and runtime settings. Previous launcher files are backed up under `CommandMetal-backups` in the game directory. It refuses installation while a Command process is running.
 
 ## Play
 
@@ -65,11 +67,11 @@ CROSSOVER_APP='/Applications/CrossOver.app' \
 zsh scripts/Play-D3DMetal.command
 ```
 
-The normal CrossOver **Command** icon starts the original executable without these adapters. To use CommandMetal through CrossOver's Run Command dialog, select the installed `CommandMetal.exe` and use the same graphics and synchronization settings.
+The normal CrossOver **Command** icon starts the original executable without these adapters. To use both fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
 
 ## Remove or roll back
 
-Save and close Command, then remove only `CommandMetal.exe` and `CommandMetal.exe.config`, or restore those files from a `CommandMetal-backups` subdirectory. Each backup's `manifest.json` records which files previously existed: restore those, and remove newly added files marked as originally absent. Launch the original `Command.exe` afterward. The installer does not replace `Command.exe`, `DirectN.dll`, or `Command.exe.config`.
+Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe`, and their `.exe.config` files, or restore those files from a `CommandMetal-backups` subdirectory. Each backup's `manifest.json` records which files previously existed: restore those, and remove newly added files marked as originally absent. Launch the original `Command.exe` afterward. The installer does not replace `Command.exe`, `DirectN.dll`, the WebView2 SDK, or `Command.exe.config`.
 
 ## Development
 
