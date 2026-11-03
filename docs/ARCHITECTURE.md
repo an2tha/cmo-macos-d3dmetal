@@ -1,8 +1,22 @@
-# Adapter architecture
+# cmo-on-macos architecture
 
-## Startup
+## App and session startup
 
-The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs the targeted WebView2 capability guard and any explicitly enabled game UI hooks, then invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
+`Command Native.app` is the project's macOS entry point. The Swift launcher reads
+the game folder, CrossOver bottle and interface choice, creates an owned session
+directory, links the installed game assets, and copies the adapters and complete
+game configuration. It starts the bundled shell script, displays its output and
+retains logs after the session ends. Installed game executables remain unchanged;
+saves and data still use the installed game's locations. See [installation](INSTALL.md).
+
+The app embeds an x86_64 Objective-C library for AppKit/WebKit inside the x86_64
+Wine process. The Swift launcher itself is universal. The map and simulation
+remain Windows code. Native views communicate with the managed bridge through
+bounded requests and asynchronously polled replies. [Native ownership and coverage](NATIVE-UI.md).
+
+## Managed bootstrap
+
+The launch script starts `CommandBrowser.exe`, a Windows x64 .NET Framework 4.8 bootstrap. It registers a resolver for its embedded Harmony dependency, installs either the native interface bridge or the targeted WebView2 capability guard, plus selected game UI hooks, then invokes `CommandMetal.exe` in the same process. Its own `.exe.config` must contain the game's complete configuration because loading another assembly does not switch process configuration.
 
 `CommandMetal.exe` sets its working directory to its installation directory, optionally starts diagnostics, creates a hidden native seed window and a BGRA Direct3D 11 swap chain, and installs the adapters before invoking the original managed `Command.exe` entry point. A native `STATIC` window avoids initializing WinForms before the game's own protected startup code.
 
@@ -21,7 +35,12 @@ The adapters call the Windows COM ABI directly. `NativeGraphics.cs` contains a s
 | `Diagnostics.cs` | Session logs and opt-in exception/GC counters |
 | `D2DPerf.cs` | Opt-in timing of selected Direct2D drawing calls |
 | `GraphicsProbe.cs` | Manual pixel readback and state-restoration integration test |
-| `BrowserBootstrap.cs` | Embedded dependency resolution and browser guard before renderer startup |
+| `native/CommandNativeApp/main.swift` | App launcher, interface choice, per-session runtime and output |
+| `native/CommandNativeHost/NativeHost.m` | Native AppKit/WebKit message bridge and embedded views |
+| `NativeHost.cs` | Verified Wine-to-native library loading and request transport |
+| `NativeBrowser.cs` | Reviewed browser API redirection to WebKit |
+| `NativeGui.cs` | Supported control snapshots, native peers and original game event routing |
+| `BrowserBootstrap.cs` | Embedded dependency resolution and selected browser/interface setup before renderer startup |
 | `ReviewedGame.cs` | File hash guard for build-specific UI behavior |
 | `PanelLayout.cs` | Deferred selected-sidebar identification, map reservation, viewport coordination and rollback |
 | `RendererViewport.cs` | Verified game resize method and raw renderer/camera identity and dimension checks |
@@ -29,6 +48,8 @@ The adapters call the Windows COM ABI directly. `NativeGraphics.cs` contains a s
 | `WebViewGuard.cs` | Narrow capability check for an optional WebView2 Settings8 setter |
 
 ## WebView2 capability guard
+
+This path is used by the app's **Original Windows interface** mode and the shell launcher's default `CMO_NATIVE_UI=0`. Native browser modes use the separate WebKit bridge.
 
 The tested game ships WebView2 SDK 1.0.2151.40 while its Wine bottle has Runtime 109. The SDK's `IsReputationCheckingRequired` setter requests `ICoreWebView2Settings8`, which is unavailable in that runtime. The failed interface cast is wrapped in `NotImplementedException` and can interrupt database-pane initialization.
 

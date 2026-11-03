@@ -1,14 +1,58 @@
-# Build and continuous integration
+# Building cmo-on-macos and continuous integration
 
-## Prerequisites
+For everyday setup, follow [Install and play](INSTALL.md). The primary macOS
+entry point is `Command Native.app`. `CommandMetal` and `CommandBrowser` remain
+the names of its Windows compatibility components.
+
+## Build the macOS app
+
+On macOS, install Xcode command-line tools (`xcode-select --install`), Python
+3.10 or newer and the .NET 10 SDK. From the repository root:
+
+```sh
+python3 scripts/build_native.py
+```
+
+This first builds the managed adapter package, then compiles the native bridge
+and both launcher architectures. The result is `dist/Command Native.app`, with
+its adapters and native library embedded. CrossOver and game files are not needed
+to build it. They are needed to play. The app is ad hoc signed locally and is not
+notarized. Open it only when ready for a new saved-game test session:
+
+```sh
+open 'dist/Command Native.app'
+```
+
+The app prepares its own runtime. Do not run `scripts/install.py` as an additional
+app installation step. Keep the whole bundle together when copying it to
+Applications. [Native interface scope and tests](NATIVE-UI.md).
+
+Build options:
+
+```sh
+python3 scripts/build_native.py --dotnet /absolute/path/to/dotnet
+python3 scripts/build_native.py --skip-managed
+python3 scripts/build_native.py \
+  --output 'dist/Command Native Candidate.app' \
+  --bundle-id local.command.native.candidate
+```
+
+`--skip-managed` reuses `dist/CommandMetal`; use it only after building the intended
+managed revision. `--output` replaces an existing bundle at that location, so
+choose a separate output for work alongside a running app. Building does not
+replace views in a running game. Quit the current game before launching another.
+
+## Build the standalone Windows adapter package
+
+### Prerequisites
 
 Install a .NET 10 SDK and Python 3.10 or newer. The resulting executables target **.NET Framework 4.8, Windows x64**. The SDK version is a build requirement, not an additional runtime to install inside CrossOver.
 
-The build uses Microsoft's `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3 to provide framework reference assemblies outside Windows. The browser bootstrap also uses `Lib.Harmony` 2.3.3, embedded as a resource so installation needs no additional managed DLL. Lock files pin resolved dependencies and content hashes. No game DLL, proprietary configuration file, Apple library, or CrossOver installation is required for compilation.
+The build uses Microsoft's `Microsoft.NETFramework.ReferenceAssemblies` 1.0.3 to provide framework reference assemblies outside Windows. The browser bootstrap also uses `Lib.Harmony` 2.3.3, embedded as a resource so installation needs no additional managed DLL. Lock files pin resolved dependencies and content hashes. The managed build needs no game DLL, proprietary configuration file, Apple library or CrossOver installation. The native app build additionally uses the macOS frameworks supplied by the Xcode tools.
 
-Both projects explicitly target the `win-x64` runtime so locked restore uses the same dependency graph on every host. Runtime identifiers are not appended to output directories; packaging continues to read `bin/Release/net48`.
+The managed executable projects explicitly target the `win-x64` runtime so locked restore uses the same dependency graph on every host. Runtime identifiers are not appended to output directories; packaging continues to read `bin/Release/net48`.
 
-## Commands
+### Commands
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -50,11 +94,18 @@ To intentionally update dependencies, edit the relevant `PackageReference` in `D
 
 ## GitHub Actions
 
+The workflow still appears as **Build CommandMetal**, and its artifact remains
+`CommandMetal-win-x64`. Those names refer to the adapter package, not a different
+repository. The current workflow does **not** build, sign, notarize or upload
+`Command Native.app`. The published `v0.1` release also contains only the adapter
+ZIP. Build the app locally until a macOS package is published.
+
+
 `.github/workflows/build.yml` runs on pushes, pull requests, and manual dispatch. It uses a Windows runner, installs .NET 10 and Python, runs host-side installer/package tests, builds the three executables, runs both launcher `--version` checks without the game installed, and verifies the bootstrap's embedded dependency by applying and removing a prefix on a self-test method. The same self-test uses owned WinForms controls and an injected viewport to exercise width enforcement, paired viewport updates, camera lag, busy rendering, resize failures, reentrant rollback and transient restoration retries. It also detours the real framework Form.Activate using hidden fixture forms to verify suppression of the observed caller while preserving legitimate, nested-dialog and other-form activation. It creates no visible game window. It uploads the ZIP as `CommandMetal-win-x64` with 30-day retention.
 
 Official actions are pinned to commit SHAs. The workflow requests read-only repository permission, does not require secrets, and does not create releases or publish to a package registry. GitHub's [artifact documentation](https://docs.github.com/en/actions/tutorials/store-and-share-data) explains how to download an artifact from a workflow run.
 
-CI verifies buildability and packaging. The Windows runner does not provide the user's CrossOver/D3DMetal environment, so a green build does not certify map rendering, performance, or freeze prevention. The workflow itself can only be exercised after the repository is pushed to GitHub.
+CI verifies buildability and packaging. The Windows runner does not provide the user's CrossOver/D3DMetal environment, so a green build does not certify map rendering, performance, or freeze prevention. Local edits are not validated by Actions until they are pushed and the matching run succeeds.
 
 ## Manual Rosetta barrier validation
 

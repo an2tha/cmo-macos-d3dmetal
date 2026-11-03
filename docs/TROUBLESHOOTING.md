@@ -1,8 +1,57 @@
-# Diagnostics and troubleshooting
+# cmo-on-macos troubleshooting and diagnostics
+
+Start with the [app installation guide](INSTALL.md). The launcher is currently
+named **Command Native.app**. `CommandMetal` remains the name used by its renderer
+and existing log folders.
+
+## The app cannot find the game
+
+Click **Choose…** and select the folder containing both `Command.exe` and
+`Command.exe.config`. The game's shortcut, whole bottle and Steam library root
+are not the game folder. Match the **CrossOver bottle** field to the bottle that
+owns that installation; `Steam` is only the default. The app does not install
+Command or its Windows dependencies.
+
+If the error mentions CrossOver, the script expects `/Applications/CrossOver.app`
+unless `CROSSOVER_APP` is set. For a custom location, close the launcher and start
+its executable from Terminal with the override, adjusting both paths:
+
+```sh
+CROSSOVER_APP='/custom/location/CrossOver.app' \
+'/Applications/Command Native.app/Contents/MacOS/CommandNative'
+```
+
+## I downloaded a ZIP but cannot find the app
+
+The published `v0.1` release and **Build CommandMetal** Actions artifact contain
+the manual Windows adapter package. They do not contain `Command Native.app`.
+Follow [the macOS app build steps](INSTALL.md#2-get-command-nativeapp), or use
+[the manual installation alternative](INSTALL.md#advanced-manual-adapter-installation).
+Do not rename the ZIP or a Windows executable to `.app`.
+
+## Native controls, menus or browser views behave incorrectly
+
+Save and close Command. In the app, choose **Native browser only (development)**
+to isolate native control issues, or **Original Windows interface** to return to
+Windows controls and the targeted WebView2 guard. Click **Launch Command** for a
+fresh session. Changing the dropdown does not change an already-running game.
+
+An unsupported native-module profile is an explicit startup failure. Record the
+CrossOver version and relevant log lines; do not bypass hash checks. The original
+interface is a comparison path, not confirmation that the new version is supported.
+See [native coverage and limitations](NATIVE-UI.md).
+
+## Map stutters when entering a new region
+
+Region-transition lag is under investigation separately from steady map FPS.
+Useful comparisons include returning to the same region after the first visit,
+paused versus running simulation, and the same zoom level and overlays. Report
+which comparison changes the delay. Do not assume terrain loading, GPU upload
+or the simulation is responsible without timing evidence.
 
 ## Database list appears but entry details are blank
 
-Start through `CommandBrowser.exe` or the supplied launch script. The renderer-only `CommandMetal.exe` does not install the browser guard. With the tested Runtime 109 and SDK 1.0.2151.40, the optional `IsReputationCheckingRequired` setter throws because Settings8 is unsupported. The bootstrap skips that setter only on `E_NOINTERFACE`, retaining browser defaults so pane initialization can continue.
+Start through **Command Native.app** or the supplied launch script. In a native browser mode, inspect the native bridge logs and try the original interface for comparison. The following Settings8 workaround applies specifically to the original Windows interface. The renderer-only `CommandMetal.exe` does not install the browser guard. With the tested Runtime 109 and SDK 1.0.2151.40, the optional `IsReputationCheckingRequired` setter throws because Settings8 is unsupported. The bootstrap skips that setter only on `E_NOINTERFACE`, retaining browser defaults so pane initialization can continue.
 
 Browser logs record guard installation, SDK identity mismatches, and skipped calls. Unknown SDK hashes are left unchanged. `CMO_WEBVIEW_COMPAT=0` disables the guard for a controlled comparison. Neither the SDK nor the WebView2 runtime is replaced by this fix.
 
@@ -42,11 +91,23 @@ The bottle toggle can still display a saved default that differs from the enviro
 
 ## Missing files or startup errors
 
-Install the launcher beside the real `Command.exe` using `scripts/install.py`. The full game configuration is required because assembly redirects and WPF runtime settings belong to the installed game. Rerun the installer after an update changes `Command.exe.config`.
+For the app route, select the original game folder; the app copies the full configuration into its per-session runtime automatically. For manual installations only, install the adapters beside the real `Command.exe` using `scripts/install.py`. The full game configuration is required because assembly redirects and WPF runtime settings belong to the installed game. After a game update, the app uses the current configuration on its next launch. Manual installations need the installer rerun if `Command.exe.config` changed.
 
 The original prototype encountered a WPF ResourceDictionary exception with an invalid-window-handle inner failure during a dirty bottle session. A clean restart cleared that occurrence. That is one observation, not a universal fix for ResourceDictionary errors.
 
 ## Logs
+
+| Log | Where to find it |
+| --- | --- |
+| App session output | `~/Library/Application Support/CommandNative/Logs` |
+| Native Wine output | `~/Library/Logs/CommandMetal` |
+| Managed adapter/browser diagnostics | `%LOCALAPPDATA%\CommandMetal\logs` inside the selected bottle |
+
+Use Finder's **Go > Go to Folder…** for the Mac paths. For the managed logs,
+open the bottle's C: drive and look under `users/<Windows user>/AppData/Local/CommandMetal/logs`.
+The app also shows output while the game runs. Keep logs from the affected session;
+restarting creates another file rather than overwriting the previous one.
+
 
 CommandMetal writes startup and launcher failures to `%LOCALAPPDATA%\CommandMetal\logs` inside the bottle. Session filenames contain a UTC timestamp and Windows process ID. Set `CMO_LOG_DIR` to another Windows-visible directory to override the location. File-write failures are contained so diagnostics do not replace the error being reported.
 
@@ -69,6 +130,6 @@ The launch script preserves native Wine output in a separate timestamped file un
 
 ## Reporting a freeze
 
-Record the game/CrossOver/macOS/backend versions, synchronization settings, scenario name, approximate play duration, last action, and whether the whole window or only the map stopped responding. Include small relevant log excerpts after reviewing them for local paths and scenario details. Do not attach game executables, game DLLs, saved scenarios, or full memory dumps to public issues.
+Use [cmo-on-macos issues](https://github.com/an2tha/cmo-on-macos/issues). Record the project revision or release, app versus shell launch, interface mode, game/CrossOver/macOS/backend versions, synchronization settings, scenario name, approximate play duration, last action, and whether the whole window or only the map stopped responding. Include small relevant log excerpts after reviewing them for local paths and scenario details. Do not attach game executables, game DLLs, saved scenarios, or full memory dumps to public issues.
 
 Main-thread GC waits, a zero wrapper exit status, or a missing managed exception do not by themselves prove a cause. Keep observations separate from hypotheses. Avoid attaching a debugger or running intrusive UI inspection during a session with unsaved progress.

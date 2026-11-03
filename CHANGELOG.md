@@ -1,6 +1,9 @@
-# Changelog
+# cmo-on-macos changelog
 
 ## Unreleased
+
+- Use cmo-on-macos as the project name and make `Command Native.app` the main setup route. Add a complete installation guide covering bottle/game-folder selection, interface modes, logs, updates and removal. Preserve actual component filenames and document that current release/CI ZIPs do not include the app.
+- Add the universal Swift/AppKit launcher and embedded AppKit/WebKit interface, with a per-session runtime that preserves the installed game executables. Native controls remain a development option, with browser-only and original Windows modes selectable in the app. See [coverage and validation](docs/NATIVE-UI.md).
 
 - Publish five-run synthetic drawing benchmarks, raw measurements and a reproducible command. Add warmup and completed-work timing to GraphicsProbe; share the batching callback delegate types to fix the probe's .NET delegate round-trip mismatch.
 - Preserve native Wine output in a separate log for each launch, including launches through an app, and detect experimental bootstrap processes before starting a second game.

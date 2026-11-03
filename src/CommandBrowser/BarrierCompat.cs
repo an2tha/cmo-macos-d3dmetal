@@ -13,7 +13,7 @@ internal static class BarrierCompat
 {
     private const string NativeHash = "ab32585d767ae631154235861a2e0e8ea61bd09267a2dd341a439e3e8ed071fc";
     private static readonly object Initialization = new object();
-    private static IntPtr Data, Code, Copy;
+    private static IntPtr Data, Code, Copy, Original;
     private static volatile bool Installed;
     [DllImport("ntdll.dll")] private static extern int NtQueryInformationThread(IntPtr thread, int kind, byte[] info, int length, out int returned);
     [DllImport("kernel32.dll", SetLastError=true)] private static extern IntPtr VirtualAlloc(IntPtr address, UIntPtr size, uint allocation, uint protect);
@@ -141,6 +141,7 @@ internal static class BarrierCompat
             Require((tables.ToInt64() & 7) == 0, "Unaligned service-table pointer.");
             Require(Interlocked.CompareExchange(ref *(long*)tables.ToPointer(), Copy.ToInt64(), originalTable.ToInt64()) == originalTable.ToInt64(),
                 "Native service table changed during preparation.");
+            Original = original;
             Installed = true;
         }
         finally
@@ -161,6 +162,10 @@ internal static class BarrierCompat
         catch { /* A diagnostic failure must not undo or misreport native publication. */ }
     }
     internal static long Calls { get { return Installed ? Marshal.ReadInt64(Add(Data, 64)) : 0; } }
+    // Other exact-version bridges must identify the Wine image from the real
+    // service, not from this guard's process-local replacement trampoline.
+    internal static IntPtr UnwrapBarrier(IntPtr service)
+    { return Installed && service == Code ? Original : service; }
     internal static long Active { get { return Installed ? Marshal.ReadInt64(Add(Data, 72)) : 0; } }
     internal static long MaximumActive { get { return Installed ? Marshal.ReadInt64(Add(Data, 80)) : 0; } }
     internal static long Faults { get { return Installed ? Marshal.ReadInt64(Add(Data, 88)) : 0; } }

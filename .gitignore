@@ -8,6 +8,7 @@ dist/
 # Proprietary inputs and local investigations never belong in this repository.
 *.exe
 *.dll
+*.dylib
 *.pdb
 *.log
 *.csv

@@ -1,12 +1,64 @@
-# CommandMetal
+# cmo-on-macos
 
-An experimental D3DMetal compatibility launcher for **Command: Modern Operations** on macOS with CrossOver.
+**Run Command: Modern Operations on your Mac, with one launcher for graphics fixes, browser rendering and the native interface.**
 
-CommandMetal supplies the DXGI surface and D3D11 context-state behavior used by Wine's Direct2D renderer. It runs the original `Command.exe` in the same process, with process-local graphics adapters installed first. The game executable and its libraries are not patched on disk.
+cmo-on-macos brings the CrossOver setup, D3DMetal compatibility fixes, native macOS controls and troubleshooting into one project. Open **Command Native.app**, choose your installed game and bottle, then click **Launch Command**. The app prepares the compatibility components for that session without replacing the installed game executables.
 
-The included `CommandBrowser.exe` bootstrap also handles an optional WebView2 API missing from Runtime 109, allowing the Database Viewer's details pane to initialize. It then starts `CommandMetal.exe` in the same process. The launch script enables selected-unit sidebar and map viewport synchronization by default. A separate experimental option can contain a captured window-activation wait.
+You still need your own copy of Command and CrossOver. The launcher does not install either, and the simulation and map continue to run through CrossOver.
 
-**Status:** the original prototype renders a playable map, with remaining lag. The sidebar resize, map input and database details passed in-game checks. The optional focus and native barrier guards address captured failure paths, but a later whole-window freeze remains unresolved. The standalone renderer passes the isolated drawing benchmarks below; full in-game regression testing of that rewrite is still required.
+[Get started](docs/INSTALL.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Compatibility](docs/COMPATIBILITY.md) · [Report an issue](https://github.com/an2tha/cmo-on-macos/issues)
+
+## What is included
+
+| Component | What it does |
+| --- | --- |
+| **Command Native.app** | One place to choose your game folder, bottle and interface, launch the game and read session output |
+| **D3DMetal compatibility** | Supplies the surface and graphics-state behavior needed for the map, with drawing batches to reduce overhead |
+| **Sidebar and input fixes** | Keeps the unit status panel visible while coordinating map size and click coordinates |
+| **Native browser rendering** | Uses embedded WebKit for supported database, scenario and other HTML views |
+| **Native controls** | Adds AppKit peers for supported standard controls, with existing game handlers retained |
+| **Windows interface fallback** | Selectable in the same app, including the targeted WebView2 compatibility guard |
+| **Diagnostics** | Saved session logs, isolated drawing probes and documented checks for bug reports |
+
+**Current status:** experimental and under active development. The playable prototype passed map, sidebar, input and database checks, with remaining lag and intermittent freezes. The native interface has passed isolated bridge/toolbar checks and a startup check; broad gameplay validation is still needed. Some custom controls remain Windows-rendered. [Known issues and tested versions](docs/COMPATIBILITY.md).
+
+## Get the app
+
+Download **Command-Native-0.2.7-macOS.zip** from [release v0.2.7](https://github.com/an2tha/cmo-on-macos/releases/tag/v0.2.7). It contains a universal Swift launcher with native Apple Silicon support. The embedded Wine bridge remains x86_64 because it runs inside the Windows game's translated process. Rosetta and the reviewed CrossOver runtime are still required. The app is ad-hoc signed, not Developer ID signed or notarized.
+
+The launcher asks for your game folder and bottle and remembers them locally. No developer-specific paths, game assets, CrossOver binaries, or recovery wrappers are included. Build from source with:
+
+Install the Xcode command-line tools, Python 3.10 or newer and the .NET 10 SDK, then run:
+
+```sh
+git clone https://github.com/an2tha/cmo-on-macos.git
+cd cmo-on-macos
+python3 scripts/build_native.py
+open 'dist/Command Native.app'
+```
+
+The build needs no game files. Once built, the app does not need Python or the .NET SDK to launch the game. You can copy the whole `Command Native.app` bundle to Applications and add it to your Dock. The current app name is **Command Native**, while the project and repository are **cmo-on-macos**. Existing executable names such as `CommandMetal.exe` are component names and remain unchanged.
+
+[Step-by-step setup, prerequisites and game-folder examples](docs/INSTALL.md). Developers can find build options and CI details in [BUILDING.md](docs/BUILDING.md).
+
+## First launch
+
+1. Install Command and its required .NET Framework 4.8 dependencies in a CrossOver bottle. This project starts from that installed game.
+2. Save and close Command. Select **D3DMetal** in the bottle and turn **MSync off**. If changing synchronization settings, first save and close the bottle's other applications, then use **Quit All Applications**.
+3. Open **Command Native.app**. Under **Game folder**, click **Choose…** and select the directory containing both `Command.exe` and `Command.exe.config`.
+4. Enter the exact **CrossOver bottle** name. Use your own bottle's name.
+5. Choose an **Interface**, then click **Launch Command**. The default native mode is a development option. **Original Windows interface** provides a comparison path with the graphics/sidebar fixes retained.
+6. Load a scenario and check the map, unit selection, sidebar and Database Viewer. Use this app for subsequent launches so the compatibility components are loaded.
+
+There is no separate `install.py` step for the app. It creates a temporary runtime, supplies the complete game configuration and retains logs after exit. Saves and game data still use the installed game's locations. [Updates, removal and the manual alternative](docs/INSTALL.md).
+
+## Requirements and scope
+
+- An Apple Silicon Mac, CrossOver with D3DMetal, and a licensed installation of Command: Modern Operations in a bottle.
+- The game's required Windows dependencies, including .NET Framework 4.8, installed in that bottle.
+- The native bridge currently requires the reviewed CrossOver native-module versions. An unknown profile stops native startup instead of applying guessed offsets.
+
+The prototype was exercised with Command v1.10 build 1900.20, CrossOver 26.3, D3DMetal 4.0b2, macOS 27.2 and an Apple M4 Max. Other environments are unvalidated. A universal launcher binary does not mean Intel gameplay is supported. The launch script requests a 60 FPS cap; this is not a promise of 60 FPS in battles.
 
 ## Benchmarks
 
@@ -23,95 +75,36 @@ Each run uses a 600×400 target, 100 warmup iterations and 2,000 timed iteration
 
 There is no presentation inside the timed loop, so iterations/second is not displayed FPS and is not capped by the launcher's requested 60 FPS limit. Map movement, text, terrain, simulation work, Wine-versus-D3DMetal speed and long-session stability are not measured here. See [the reproducible command](docs/BUILDING.md#reproduce-the-drawing-benchmark).
 
-## Requirements
+## Documentation
 
-- A licensed installation of Command: Modern Operations and its required .NET Framework 4.8 dependencies in CrossOver.
-- An Apple Silicon Mac and CrossOver with D3DMetal available.
-- Python 3.10 or newer for the installer. A .NET 10 SDK is needed only when building from source.
+- [Installation, everyday use and removal](docs/INSTALL.md)
+- [Compatibility and known issues](docs/COMPATIBILITY.md)
+- [Troubleshooting and session logs](docs/TROUBLESHOOTING.md)
+- [Native interface coverage and validation](docs/NATIVE-UI.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Building, tests and GitHub Actions](docs/BUILDING.md)
+- [Contributing](CONTRIBUTING.md) and [changelog](CHANGELOG.md)
 
-The prototype was exercised with Command v1.10, build 1900.20, CrossOver 26.3, D3DMetal 4.0b2, macOS 27.2, and an Apple M4 Max. Other versions and hardware are untested. See [compatibility and limitations](docs/COMPATIBILITY.md).
+## Project and license
 
-## Download or build
+cmo-on-macos is an independent community project, unaffiliated with the game's publishers, CodeWeavers or Apple. The source is under the [MIT license](LICENSE). Game and platform components retain their own licenses. The repository does not include Command, CrossOver, Apple libraries, game saves or proprietary game assets.
 
-Open **Actions > Build CommandMetal**, select a successful `main` run, and download the `CommandMetal-win-x64` artifact. Extract the artifact, then extract the included `CommandMetal-win-x64.zip`.
 
-To build from source on Windows, macOS, or Linux:
+## Files and libraries in the functional build
 
-```sh
-python3 scripts/build.py
-```
+| File or library | Role and changes |
+| --- | --- |
+| `Command Native.app/Contents/MacOS/CommandNative` | Universal Swift/AppKit launcher. Selects the installation and bottle, creates a separate session runtime, starts CrossOver and retains session logs. |
+| `CommandBrowser.exe` | Managed bootstrap, built here. Loads embedded Harmony and installs browser, native-control and optional Wine barrier compatibility hooks before the graphics adapter starts the game. |
+| `0Harmony.dll` (embedded) | Harmony runtime method interception. Redirects the reviewed WebView2 and WinForms entry points in memory; no patched Microsoft DLL is distributed. |
+| `CommandMetal.exe` | Managed graphics adapter, built here. Supplies D3D11/DXGI surface and context-state compatibility, Direct2D batching, and coordinated sidebar/map resizing. |
+| `libCommandNativeHost.dylib` | Objective-C x86_64 library loaded inside Wine. Embeds AppKit controls and WKWebView in Wine windows, maps local HTML resources and returns events to the original managed handlers. |
+| `Command.exe` | Original installed game. Loaded from the selected installation; not redistributed or rewritten. Its simulation, custom controls and command handlers remain authoritative. |
+| `Command.exe.config` | Original complete configuration copied to the two bootstrap executable configurations in the session directory. Minimal build configurations must not replace it. |
+| `Microsoft.Web.WebView2.Core.dll`, `Microsoft.Web.WebView2.WinForms.dll` | Original installed SDK assemblies. Native mode redirects supported calls to WebKit. Windows-interface mode uses the targeted settings compatibility guard and the installed browser runtime. |
+| `ntdll.dll`, `ntdll.so`, `winemac.so` | Installed Wine boundary and Cocoa window driver. The native bridge verifies reviewed module hashes before using their ABI/layout. Optional barrier serialization is an in-memory hook. These libraries are not bundled or replaced. |
+| `d3d11.dll`, DXGI, `d2d1.dll`, D3DMetal | Installed graphics stack used by the adapter's surface/context and drawing fixes. Vendor implementations remain external dependencies. |
+| AppKit, WebKit, Foundation | System macOS frameworks providing native UI, HTML rendering and launcher services. |
+| Game HTML, CSS, images and scenario files | Read from the chosen game installation through session links and scoped resource mappings. They are not included in releases. |
 
-On Windows, use `python` instead of `python3` if needed. The package is written to `dist/CommandMetal-win-x64.zip`. Builds need neither CrossOver nor a game installation. [Build details and CI](docs/BUILDING.md).
-
-## Install
-
-1. Save and close Command.
-2. Extract a package, or build the source checkout.
-3. Run the installer with your actual game directory:
-
-```sh
-python3 scripts/install.py --game-dir "$HOME/Library/Application Support/CrossOver/Bottles/Steam/drive_c/Games/Command - Modern Operations"
-```
-
-The installer writes `CommandMetal.exe`, `CommandBrowser.exe`, and their `.exe.config` files beside `Command.exe`. Each configuration is an exact copy of the existing `Command.exe.config`, preserving the game's binding redirects and runtime settings. Previous launcher files are backed up under `CommandMetal-backups` in the game directory. It refuses installation while a Command process is running.
-
-## Play
-
-In CrossOver, choose **D3DMetal** and turn **MSync off** for the game's bottle. For an existing session, save and close its applications, then use the bottle's **Quit All Applications** before launching with different synchronization settings.
-
-From a source checkout:
-
-```sh
-zsh scripts/Play-D3DMetal.command
-```
-
-From an extracted package:
-
-```sh
-zsh Play-D3DMetal.command
-```
-
-The launcher selects D3DMetal, disables its forced Metal 4 path, caps the requested frame rate at 60, enables drawing batches, and requests `WINEMSYNC=0` and `WINEESYNC=0`. It never closes an existing game or kills the bottle. These flags are the current prototype's working settings, not a guarantee of 60 FPS or stability.
-
-Override the paths for another bottle or installation:
-
-```sh
-CMO_BOTTLE='My Bottle' \
-CMO_GAME_DIR='/absolute/path/to/Command - Modern Operations' \
-CROSSOVER_APP='/Applications/CrossOver.app' \
-zsh scripts/Play-D3DMetal.command
-```
-
-The normal CrossOver **Command** icon starts the original executable without these adapters. To use these fixes through CrossOver's Run Command dialog, select the installed `CommandBrowser.exe` and use the same graphics and synchronization settings. Starting `CommandMetal.exe` directly applies only the graphics adapters.
-
-## Experimental sidebar and focus tests
-
-These options are restricted to the reviewed Command build. The launch script enables the sidebar resize fix by default; the separate focus guard remains opt-in. The combined bootstrap passed a controlled in-game check of automatic startup, selection, panel scrolling, pan/zoom, context menus, resizing, sidebar hide/show, app switching, unit/database dialogs and keyboard focus. Longer sessions and other environments remain unvalidated.
-
-After saving and closing the game, start a separate test session with:
-
-```sh
-CMO_PANEL_LAYOUT=1 CMO_FOCUS_COMPAT=1 zsh scripts/Play-D3DMetal.command
-```
-
-For an extracted package, use `Play-D3DMetal.command` without the `scripts/` prefix. `CMO_PANEL_LAYOUT=1` reserves sidebar space and synchronizes the renderer and picking camera. The launch script supplies this setting automatically on every run. `CMO_FOCUS_COMPAT=1` guards the exact message-handler activation path captured during one freeze. Unknown game hashes retain normal behavior. Set either option to `0` on the next launch to disable it. Starting `CommandBrowser.exe` directly still requires these environment variables; starting `CommandMetal.exe` directly bypasses the sidebar and browser fixes.
-
-## Experimental long-session crash fix
-
-A captured Rosetta assertion left two threads inside Wine's process-wide memory barrier. An optional native serialization guard addresses the concurrent Mach register-state query path, following the approach in [Microsoft's Rosetta fix](https://github.com/dotnet/runtime/pull/134384). It preserves the original barrier and the map/sidebar code. A four-thread stress test and a combined graphics/GC probe passed, and the user confirmed normal map/input/sidebar behavior. A later freeze with a Wine critical-section timeout remains unresolved; this is not a complete crash fix.
-
-After saving and closing the game, use `CMO_SERIALIZE_BARRIERS=1 zsh scripts/Play-D3DMetal.command` to test it. This option requires the exact reviewed CrossOver native module and stops startup if the profile differs. It is off by default. See [diagnostics and limitations](docs/TROUBLESHOOTING.md#rosetta-thread-context-assertion-during-long-sessions).
-
-## Remove or roll back
-
-Save and close Command, then remove only `CommandMetal.exe`, `CommandBrowser.exe`, and their `.exe.config` files, or restore those files from a `CommandMetal-backups` subdirectory. Each backup's `manifest.json` records which files previously existed: restore those, and remove newly added files marked as originally absent. Launch the original `Command.exe` afterward. The installer does not replace `Command.exe`, `DirectN.dll`, the WebView2 SDK, or `Command.exe.config`.
-
-## Development
-
-- [How the adapters work](docs/ARCHITECTURE.md)
-- [Building and GitHub Actions](docs/BUILDING.md)
-- [Diagnostics and troubleshooting](docs/TROUBLESHOOTING.md)
-- [Known issues and compatibility](docs/COMPATIBILITY.md)
-- [Contributing and test expectations](CONTRIBUTING.md)
-
-This repository includes adapter source, a manual drawing probe, build and install tools, and documentation. It excludes the game, game libraries, saved scenarios, local investigations, and experimental bitmap-cache patches. It is an independent project, unaffiliated with the game's publishers, CodeWeavers, or Apple. The adapter source is under the [MIT license](LICENSE); game and platform components retain their own licenses.
+Configuration is independent of an account name or game location. `CMO_GAME_DIR`, `CMO_BOTTLE`, `CROSSOVER_APP`, `CMO_WINE_PREFIX`, and `CMO_WINE_BIN` cover custom installations; `CX_ROOT` follows the selected CrossOver application unless explicitly overridden. Native UI remains selectable with `CMO_NATIVE_UI=0|browser|all`. Portability of paths does not imply compatibility with arbitrary Wine versions: the exact native-module guards remain enforced. See [native implementation and limitations](docs/NATIVE-UI.md).

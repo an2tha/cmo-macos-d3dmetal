@@ -52,13 +52,15 @@ internal static class BrowserBootstrap
                 return BootstrapSelfTest.Run();
             if (args.Length == 1 && args[0] == "--barrier-self-test")
                 return BarrierSelfTest.Run();
+            if (args.Length == 1 && args[0] == "--native-ui-self-test")
+                return NativeUiSelfTest.Run();
             string directory = AppDomain.CurrentDomain.BaseDirectory;
             Directory.SetCurrentDirectory(directory);
             Log("Starting browser compatibility bootstrap before CommandMetal.exe.");
             if (Environment.GetEnvironmentVariable("CMO_SERIALIZE_BARRIERS") == "1")
                 BarrierCompat.Install(Log);
             // Keep Harmony-dependent methods out of this entry-point's JIT resolution.
-            InstallGuard(directory);
+            InstallBrowser(directory);
             InstallUiFixes(directory);
             Assembly renderer = Assembly.LoadFrom(Path.Combine(directory, "CommandMetal.exe"));
             MethodInfo entry = renderer.EntryPoint;
@@ -88,6 +90,20 @@ internal static class BrowserBootstrap
             return;
         }
         PanelLayout.Install(directory, Log);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void InstallBrowser(string directory)
+    {
+        string mode = Environment.GetEnvironmentVariable("CMO_NATIVE_UI") ?? "0";
+        if (mode == "0") { InstallGuard(directory); return; }
+        if (mode != "browser" && mode != "all")
+            throw new ArgumentException("CMO_NATIVE_UI must be 0, browser, or all.");
+        if (!ReviewedGame.IsKnown(directory, Log))
+            throw new InvalidOperationException("Native UI requires the reviewed game build.");
+        NativeHost.Install(Environment.GetEnvironmentVariable("CMO_NATIVE_HOST"), Log);
+        NativeBrowser.Install(directory, Log);
+        if (mode == "all") NativeGui.Install();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
